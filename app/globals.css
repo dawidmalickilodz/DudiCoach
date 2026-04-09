@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* DudiCoach dark theme — brand colors */
+  --color-background: #0a0f1a;
+  --color-card: #111827;
+  --color-border: #1e293b;
+  --color-input: #1a2236;
+  --color-muted: #64748b;
+  --color-foreground: #f1f5f9;
+  --color-muted-foreground: #94a3b8;
+
+  /* Accent colors */
+  --color-primary: #22d3ee; /* cyan — główny */
+  --color-primary-foreground: #0a0f1a;
+  --color-success: #34d399; /* green */
+  --color-destructive: #f87171; /* red — błąd/kontuzja */
+  --color-warning: #fb923c; /* orange — diagnostyka */
+  --color-purple: #a78bfa; /* udostępnianie */
+  --color-yellow: #fbbf24; /* progresje */
+
+  /* Radii */
+  --radius-card: 10px;
+  --radius-input: 6px;
+  --radius-pill: 20px;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  /* Form elements — dark inputs */
+  input,
+  textarea,
+  select {
+    background-color: var(--color-input);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-input);
+    color: var(--color-foreground);
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+  }
+
+  ::placeholder {
+    color: var(--color-muted-foreground);
+  }
+
+  /* Focus-visible polish */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
