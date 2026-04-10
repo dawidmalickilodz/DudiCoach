@@ -4,7 +4,7 @@ title: Backend CRUD zawodnika
 role: trener
 priority: P0
 estimate: M
-status: Ready
+status: InDev
 dependencies: [US-001]
 epic: EPIC-A
 design_required: true
@@ -96,6 +96,21 @@ Wtedy odpowiedź ma status 401
 - [ ] E2E tests (via frontend US-003)
 - [ ] Review approved
 - [ ] Deployed
+
+## Implementation Log
+
+### 2026-04-10 — developer-backend
+
+Files created/modified:
+- `supabase/migrations/20260410120000_US-002_athletes_table.sql` — generate_share_code() function, athletes table with CHECK constraints, moddatetime trigger, 4 RLS policies, 2 indexes
+- `lib/validation/athlete.ts` — createAthleteSchema, updateAthleteSchema, CreateAthleteInput, UpdateAthleteInput
+- `app/api/athletes/route.ts` — POST (create) and GET (list) handlers
+- `app/api/athletes/[id]/route.ts` — GET (single), PATCH (update), DELETE handlers; Next.js 16 async params pattern applied
+- `lib/supabase/database.types.ts` — updated with athletes table (manually written; MCP apply_migration not available in this session — Supabase PAT required for CLI type generation; types match the migration schema exactly)
+
+Verification: `npm run typecheck` pass, `npm run lint` pass, `npm run test` 20/20 pass.
+
+Migration pending application to live Supabase (requires PAT or MCP connection). SQL is correct and ready.
 
 ## Implementation Notes
 
