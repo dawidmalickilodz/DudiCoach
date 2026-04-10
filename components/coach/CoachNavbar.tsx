@@ -18,7 +18,7 @@ export default function CoachNavbar({ displayName }: CoachNavbarProps) {
         {/* Right side: greeting + logout */}
         <div className="flex items-center gap-4">
           <span className="text-muted-foreground hidden text-sm sm:block">
-            {`Witaj, ${displayName}`}
+            {`${pl.coach.navbar.greeting} ${displayName}`}
           </span>
           <LogoutButton />
         </div>

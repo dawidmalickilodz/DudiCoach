@@ -57,6 +57,9 @@ export const pl = {
   },
 
   coach: {
+    navbar: {
+      greeting: "Witaj,",
+    },
     dashboard: {
       title: "Panel trenera",
       welcome: "Witaj z powrotem!",
