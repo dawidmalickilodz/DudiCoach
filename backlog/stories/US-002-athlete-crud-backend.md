@@ -4,7 +4,7 @@ title: Backend CRUD zawodnika
 role: trener
 priority: P0
 estimate: M
-status: InDev
+status: InDevTests
 dependencies: [US-001]
 epic: EPIC-A
 design_required: true
