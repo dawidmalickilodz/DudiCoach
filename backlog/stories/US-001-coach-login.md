@@ -4,7 +4,7 @@ title: Logowanie trenera do panelu
 role: trener
 priority: P0
 estimate: S
-status: Ready
+status: InDevTests
 dependencies: []
 epic: EPIC-A
 design_required: true
@@ -91,4 +91,25 @@ I używa fontu DM Sans
 
 ## Implementation Log
 
-(Uzupełniane przez developerów w trakcie implementacji)
+### 2026-04-10 — developer-frontend
+
+Implemented frontend half of US-001. Files created/modified:
+
+- `app/(coach)/login/page.tsx` — Server Component; centered card login page using Tailwind v4 theme tokens
+- `app/(coach)/login/LoginForm.tsx` — Client Component; react-hook-form + zodResolver, startTransition submit flow, error mapping, password reset on invalid_credentials
+- `app/(coach)/dashboard/page.tsx` — Server Component; reads user + profile, renders CoachNavbar and empty-state placeholder
+- `components/coach/CoachNavbar.tsx` — Server Component; sticky top navbar with app name, greeting, and LogoutButton
+- `components/coach/LogoutButton.tsx` — Client Component; form action pattern with useFormStatus pending state
+- `lib/i18n/pl.ts` — added `auth.login.errorCookiesDisabled` key
+
+All checks passed: `npm run typecheck` clean, `npm run lint` clean, `npm run test` 1/1 passed.
+
+### 2026-04-10 — qa-dev
+
+Wrote unit and integration tests for US-001. Files created:
+
+- `tests/unit/lib/validation/auth.test.ts` — 7 tests covering loginSchema (valid input, empty email, malformed email, whitespace email, 7-char password, empty password, and a second valid-input variant)
+- `tests/integration/auth/sign-in-action.test.ts` — 8 tests covering signInAction (happy path redirect, invalid_credentials, network TypeError, Supabase 503, malformed email, empty password, PII non-leakage)
+- `tests/integration/middleware.test.ts` — 5 tests covering updateSession (unauthenticated /coach/dashboard, unauthenticated /coach/athletes/abc, unauthenticated /login pass-through, authenticated /login redirect, unauthenticated / pass-through)
+
+All 20 tests pass. `npm run typecheck` clean. Verdict: PASS.

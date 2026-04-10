@@ -47,6 +47,8 @@ export const pl = {
       errorInvalid: "Nieprawidłowy email lub hasło",
       errorGeneric: "Nie udało się zalogować. Spróbuj ponownie.",
       errorNetwork: "Brak połączenia. Sprawdź internet.",
+      errorCookiesDisabled:
+        "Włącz pliki cookie w przeglądarce, aby się zalogować.",
     },
     logout: {
       button: "Wyloguj",
