@@ -6,10 +6,16 @@ import { updateAthleteSchema } from "@/lib/validation/athlete";
 // Next.js 16: params is a Promise — must be awaited.
 type RouteContext = { params: Promise<{ id: string }> };
 
+const NOT_FOUND_ERROR_CODE = "PGRST116";
+
+function isNotFoundError(error: { code?: string } | null): boolean {
+  return error?.code === NOT_FOUND_ERROR_CODE;
+}
+
 /**
  * GET /api/athletes/[id]
  * Fetch a single athlete by ID. RLS ensures the coach can only read their own athletes.
- * Returns 200 { data: Athlete } or 404 { error: "Not found" }.
+ * Returns 200 { data: Athlete }, 404 { error: "Not found" }, or 500 on backend errors.
  */
 export async function GET(
   _request: NextRequest,
@@ -33,7 +39,22 @@ export async function GET(
     .eq("id", id)
     .single();
 
-  if (error || !data) {
+  if (error) {
+    if (isNotFoundError(error)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    console.error("[GET /api/athletes/[id]] Supabase error", {
+      code: error.code,
+      hint: error.hint,
+    });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+
+  if (!data) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -44,7 +65,7 @@ export async function GET(
  * PATCH /api/athletes/[id]
  * Partial update of an athlete. All fields optional (auto-save sends changed fields).
  * RLS ensures the coach can only update their own athletes.
- * Returns 200 { data: Athlete } (full updated row) or 404.
+ * Returns 200 { data: Athlete } (full updated row), 404 for missing row, or 500 on backend errors.
  */
 export async function PATCH(
   request: NextRequest,
@@ -84,13 +105,22 @@ export async function PATCH(
     .select()
     .single();
 
-  if (error || !data) {
-    if (error) {
-      console.error("[PATCH /api/athletes/[id]] Supabase error", {
-        code: error.code,
-        hint: error.hint,
-      });
+  if (error) {
+    if (isNotFoundError(error)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+
+    console.error("[PATCH /api/athletes/[id]] Supabase error", {
+      code: error.code,
+      hint: error.hint,
+    });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+
+  if (!data) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

@@ -326,6 +326,28 @@ describe("GET /api/athletes/[id]", () => {
     expect(json.error).toBe("Not found");
   });
 
+  it("authenticated + unexpected Supabase error → 500", async () => {
+    setupAuthenticated();
+    const builder = makeBuilder({
+      data: null,
+      error: { message: "statement timeout", code: "57014", hint: "" },
+    });
+    mockFrom.mockReturnValue(builder);
+
+    const req = makeRequest(
+      "http://localhost/api/athletes/athlete-uuid-001",
+      "GET",
+    );
+    const response = await getAthlete(
+      req as Parameters<typeof getAthlete>[0],
+      routeContext("athlete-uuid-001"),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(json.error).toBe("Internal server error");
+  });
+
   it("unauthenticated → 401", async () => {
     setupUnauthenticated();
 
@@ -411,6 +433,29 @@ describe("PATCH /api/athletes/[id]", () => {
 
     expect(response.status).toBe(404);
     expect(json.error).toBe("Not found");
+  });
+
+  it("authenticated + unexpected Supabase error → 500", async () => {
+    setupAuthenticated();
+    const builder = makeBuilder({
+      data: null,
+      error: { message: "write failed", code: "XX000", hint: "" },
+    });
+    mockFrom.mockReturnValue(builder);
+
+    const req = makeRequest(
+      "http://localhost/api/athletes/athlete-uuid-001",
+      "PATCH",
+      { weight_kg: 78 },
+    );
+    const response = await PATCH(
+      req as Parameters<typeof PATCH>[0],
+      routeContext("athlete-uuid-001"),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(json.error).toBe("Internal server error");
   });
 
   it("unauthenticated → 401", async () => {
