@@ -11,11 +11,11 @@ verdict: pass
 
 | Criterion | Test file | Status |
 |---|---|---|
-| AC-1: Valid login redirects to /coach/dashboard | `tests/integration/auth/sign-in-action.test.ts` — "calls signInWithPassword then redirects to /coach/dashboard" | pass |
+| AC-1: Valid login redirects to /dashboard | `tests/integration/auth/sign-in-action.test.ts` — "calls signInWithPassword then redirects to /dashboard" | pass |
 | AC-2: Wrong password shows error, password field cleared (server action side) | `tests/integration/auth/sign-in-action.test.ts` — "returns { ok: false, error: 'invalid_credentials' }" | pass |
 | AC-2: Validation rejects malformed input before Supabase call | `tests/unit/lib/validation/auth.test.ts` — malformed email, empty password | pass |
-| AC-3: Unauthenticated /coach/** redirects to /login | `tests/integration/middleware.test.ts` — /coach/dashboard, /coach/athletes/abc | pass |
-| AC-3: Authenticated /login redirects to /coach/dashboard | `tests/integration/middleware.test.ts` — "authenticated request to /login redirects to /coach/dashboard" | pass |
+| AC-3: Unauthenticated /dashboard and /athletes/* redirects to /login | `tests/integration/middleware.test.ts` — /dashboard, /athletes/abc | pass |
+| AC-3: Authenticated /login redirects to /dashboard | `tests/integration/middleware.test.ts` — "authenticated request to /login redirects to /dashboard" | pass |
 | AC-4: Logout (signOutAction always redirects to /login) | Covered indirectly; signOutAction is a thin wrapper — direct test omitted (see notes) | n/a |
 | AC-5: Polish strings used (pl.* constants) | All test assertions reference `pl.validation.*` keys | pass |
 
@@ -43,3 +43,4 @@ None. All acceptance criteria are covered. No bugs found in the source code unde
 ## Verdict
 
 PASS — ready for qa-test (E2E stage).
+

@@ -26,7 +26,7 @@ updated: 2026-04-08
 
 ### AC-1: Generowanie share code
 ```gherkin
-Zakładając, że jestem trenerem na /coach/athletes/<id>
+Zakładając, że jestem trenerem na /athletes/<id>
 I zakładka "Online" nie była jeszcze otwarta
 Kiedy klikam zakładkę "Online"
 I klikam "Aktywuj udostępnianie"
@@ -70,7 +70,7 @@ I pole pozostaje wypełnione
 ### AC-6: Real-time sync — zmiana trenera widoczna u zawodnika
 ```gherkin
 Zakładając, że zawodnik ma otwarte /A3F7K9 w przeglądarce
-I trener ma otwarte /coach/athletes/<id>
+I trener ma otwarte /athletes/<id>
 Kiedy trener zmienia wagę z 75 na 76 kg
 I auto-save zapisuje zmianę
 Wtedy zawodnik widzi nową wagę 76 kg w ciągu <5 sekund
@@ -119,3 +119,4 @@ I stary kod przestaje działać (zawodnik widzi "Nieprawidłowy kod" po próbie 
 - Channel name: `athlete:${shareCode}` (subskrypcja na postgres_changes na rekordzie)
 - RLS dla zawodnika: osobna polisa na `athletes` table z `USING (EXISTS (SELECT 1 FROM share_codes WHERE share_codes.athlete_id = athletes.id AND share_codes.code = current_setting('request.jwt.claim.share_code', true)))`
 - Alternatywnie: RPC function z SECURITY DEFINER
+

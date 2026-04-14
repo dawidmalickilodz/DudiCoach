@@ -34,7 +34,7 @@ Full auth + CRUD verification is currently blocked by missing test coach credent
 ## Planned Coverage (when credentials are available)
 
 - US-001:
-  - protected `/coach/dashboard` redirect
+  - protected `/dashboard` redirect
   - invalid login remains on `/login` and clears password
   - successful login redirect to dashboard
   - logout redirect to `/login`
@@ -54,3 +54,6 @@ Then execute:
 ```bash
 npm run test:e2e
 ```
+
+Detailed setup: `qa/e2e/US-001-US-002-runbook.md`.
+

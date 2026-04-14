@@ -17,7 +17,7 @@ async function loginAsCoach(page: Page) {
   await page.getByLabel(/Hasło/i).fill(coachPassword);
   await page.getByRole("button", { name: /Zaloguj się/i }).click();
 
-  await expect(page).toHaveURL(/\/coach\/dashboard/);
+  await expect(page).toHaveURL(/\/dashboard/);
   await expect(
     page.getByRole("heading", { name: /Panel trenera/i }),
   ).toBeVisible();
@@ -45,8 +45,8 @@ test.describe("US-001 + US-002 high-priority E2E", () => {
     "Set E2E_COACH_EMAIL and E2E_COACH_PASSWORD to run authenticated E2E tests.",
   );
 
-  test("US-001: /coach/dashboard is protected for unauthenticated users", async ({ page }) => {
-    await page.goto("/coach/dashboard");
+  test("US-001: /dashboard is protected for unauthenticated users", async ({ page }) => {
+    await page.goto("/dashboard");
 
     await expect(page).toHaveURL(/\/login/);
     await expect(page.getByRole("heading", { name: /Zaloguj się/i })).toBeVisible();

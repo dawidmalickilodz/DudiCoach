@@ -24,7 +24,7 @@ updated: 2026-04-08
 
 ### AC-1: Przycisk generowania w edytorze
 ```gherkin
-Zakładając, że jestem na /coach/athletes/<id> i zakładka "Plany"
+Zakładając, że jestem na /athletes/<id> i zakładka "Plany"
 Wtedy widzę przycisk "Generuj plan AI"
 I pod przyciskiem widzę informację: poziom zawodnika, liczba progresji, "pierwszy plan" lub "kontynuacja po X"
 ```
@@ -114,3 +114,4 @@ Wtedy dostaję 429 Too Many Requests z komunikatem po polsku
 - Max tokens: 8000 (plan 4-tygodniowy bywa obszerny)
 - Claude może czasem dodać markdown mimo instrukcji — parser musi być odporny
 - Rate limit: 3 plan/min — niezbędne by nie przekroczyć quota i ograniczyć koszt
+

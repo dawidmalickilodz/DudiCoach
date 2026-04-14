@@ -28,7 +28,7 @@ Zakładając, że konto trenera zostało utworzone w Supabase
 Kiedy wchodzę na stronę /login
 I wpisuję poprawny email i hasło
 I klikam "Zaloguj się"
-Wtedy jestem przekierowany na /coach/dashboard
+Wtedy jestem przekierowany na /dashboard
 I widzę pusty panel zawodników z komunikatem powitalnym
 ```
 
@@ -45,7 +45,7 @@ I pole hasła jest wyczyszczone
 ### AC-3: Ochrona panelu trenera przez middleware
 ```gherkin
 Zakładając, że nie jestem zalogowany
-Kiedy próbuję wejść bezpośrednio na /coach/dashboard
+Kiedy próbuję wejść bezpośrednio na /dashboard
 Wtedy jestem przekierowany na /login
 ```
 
@@ -70,10 +70,10 @@ I używa fontu DM Sans
 
 - [ ] Migracja Supabase (jeśli potrzebna — profile table)
 - [ ] RLS policies
-- [ ] Middleware `middleware.ts` chroni `/coach/**`
+- [ ] Middleware `middleware.ts` chroni `/dashboard` oraz `/athletes/*`
 - [ ] API route `/api/auth/*` (lub użycie helpers `@supabase/ssr`)
 - [ ] Strona `/login` z react-hook-form + zod
-- [ ] Strona `/coach/dashboard` (placeholder OK w tej story)
+- [ ] Strona `/dashboard` (placeholder OK w tej story)
 - [ ] Przycisk "Wyloguj" w navbar
 - [ ] `lib/i18n/pl.ts` z kluczami auth
 - [ ] Unit tests dla walidatorów zod
@@ -110,6 +110,7 @@ Wrote unit and integration tests for US-001. Files created:
 
 - `tests/unit/lib/validation/auth.test.ts` — 7 tests covering loginSchema (valid input, empty email, malformed email, whitespace email, 7-char password, empty password, and a second valid-input variant)
 - `tests/integration/auth/sign-in-action.test.ts` — 8 tests covering signInAction (happy path redirect, invalid_credentials, network TypeError, Supabase 503, malformed email, empty password, PII non-leakage)
-- `tests/integration/middleware.test.ts` — 5 tests covering updateSession (unauthenticated /coach/dashboard, unauthenticated /coach/athletes/abc, unauthenticated /login pass-through, authenticated /login redirect, unauthenticated / pass-through)
+- `tests/integration/middleware.test.ts` — 5 tests covering updateSession (unauthenticated /dashboard, unauthenticated /athletes/abc, unauthenticated /login pass-through, authenticated /login redirect, unauthenticated / pass-through)
 
 All 20 tests pass. `npm run typecheck` clean. Verdict: PASS.
+

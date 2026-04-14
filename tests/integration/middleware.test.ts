@@ -141,16 +141,16 @@ describe("updateSession middleware", () => {
     mocks.resetState();
   });
 
-  it("unauthenticated request to /coach/dashboard redirects to /login", async () => {
+  it("unauthenticated request to /dashboard redirects to /login", async () => {
     mocks.setMockUser(null);
-    const req = new mocks.MockNextRequest("/coach/dashboard");
+    const req = new mocks.MockNextRequest("/dashboard");
     await updateSession(req as never);
     expect(mocks.getLastRedirectUrl()).toMatch(/\/login/);
   });
 
-  it("unauthenticated request to /coach/athletes/abc redirects to /login", async () => {
+  it("unauthenticated request to /athletes/abc redirects to /login", async () => {
     mocks.setMockUser(null);
-    const req = new mocks.MockNextRequest("/coach/athletes/abc");
+    const req = new mocks.MockNextRequest("/athletes/abc");
     await updateSession(req as never);
     expect(mocks.getLastRedirectUrl()).toMatch(/\/login/);
   });
@@ -162,11 +162,11 @@ describe("updateSession middleware", () => {
     expect(mocks.getLastRedirectUrl()).toBeNull();
   });
 
-  it("authenticated request to /login redirects to /coach/dashboard", async () => {
+  it("authenticated request to /login redirects to /dashboard", async () => {
     mocks.setMockUser({ id: "user-1", email: "coach@example.com" });
     const req = new mocks.MockNextRequest("/login");
     await updateSession(req as never);
-    expect(mocks.getLastRedirectUrl()).toMatch(/\/coach\/dashboard/);
+    expect(mocks.getLastRedirectUrl()).toMatch(/\/dashboard/);
   });
 
   it("unauthenticated request to / (public page) passes through without redirect", async () => {

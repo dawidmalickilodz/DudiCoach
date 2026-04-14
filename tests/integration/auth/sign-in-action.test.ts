@@ -45,7 +45,7 @@ describe("signInAction", () => {
   });
 
   describe("valid credentials — happy path", () => {
-    it("calls signInWithPassword then redirects to /coach/dashboard", async () => {
+    it("calls signInWithPassword then redirects to /dashboard", async () => {
       mockSignInWithPassword.mockResolvedValueOnce({ data: {}, error: null });
 
       let redirectError: unknown;
@@ -60,7 +60,7 @@ describe("signInAction", () => {
         email: "coach@example.com",
         password: "Password1",
       });
-      expect(isRedirectTo("/coach/dashboard", redirectError)).toBe(true);
+      expect(isRedirectTo("/dashboard", redirectError)).toBe(true);
     });
   });
 

@@ -53,5 +53,5 @@ export async function signInAction(input: LoginInput): Promise<SignInResult> {
   }
 
   // Only reached on success — redirect throws NEXT_REDIRECT, let it propagate.
-  redirect("/coach/dashboard");
+  redirect("/dashboard");
 }

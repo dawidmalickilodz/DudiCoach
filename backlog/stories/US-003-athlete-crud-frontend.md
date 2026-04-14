@@ -25,7 +25,7 @@ updated: 2026-04-08
 ### AC-1: Lista zawodników na dashboardzie
 ```gherkin
 Zakładając, że jestem zalogowany i mam 2 zawodników w DB
-Kiedy wchodzę na /coach/dashboard
+Kiedy wchodzę na /dashboard
 Wtedy widzę 2 karty zawodników
 I każda karta pokazuje: imię, sport, wiek, poziom (badge z kolorem)
 I nad kartami widzę statystyki: "2 zawodników"
@@ -33,16 +33,16 @@ I nad kartami widzę statystyki: "2 zawodników"
 
 ### AC-2: FAB dodawania zawodnika
 ```gherkin
-Zakładając, że jestem na /coach/dashboard
+Zakładając, że jestem na /dashboard
 Kiedy klikam pływający przycisk (+) w prawym dolnym rogu
 Wtedy pojawia się modal/strona z formularzem nowego zawodnika
 I mogę wpisać imię
-I po zapisaniu jestem przekierowany na /coach/athletes/<id>
+I po zapisaniu jestem przekierowany na /athletes/<id>
 ```
 
 ### AC-3: Edytor zawodnika z zakładkami
 ```gherkin
-Zakładając, że jestem na /coach/athletes/<id>
+Zakładając, że jestem na /athletes/<id>
 Wtedy widzę zakładki (pills): "Profil"
 I domyślnie aktywna jest "Profil"
 I widzę pola: imię, sport (dropdown), wiek, waga, wzrost, data rozpoczęcia,
@@ -68,9 +68,9 @@ I gdy zmienię datę na 3 miesiące temu, poziom zmienia się na "Początkujący
 
 ### AC-6: Back button + nawigacja
 ```gherkin
-Zakładając, że jestem na /coach/athletes/<id>
+Zakładając, że jestem na /athletes/<id>
 Kiedy klikam strzałkę "←" w lewym górnym rogu
-Wtedy wracam na /coach/dashboard
+Wtedy wracam na /dashboard
 ```
 
 ### AC-7: Dark theme + polski interfejs
@@ -82,8 +82,8 @@ I responsive działa do 375px
 
 ## Definition of Done
 
-- [ ] Strona `/coach/dashboard` z listą kart (shadcn/ui Card)
-- [ ] Strona `/coach/athletes/[id]` z formularzem
+- [ ] Strona `/dashboard` z listą kart (shadcn/ui Card)
+- [ ] Strona `/athletes/[id]` z formularzem
 - [ ] Komponent FAB
 - [ ] Custom hook `useAutoSave` w `lib/hooks/use-auto-save.ts`
 - [ ] Funkcja `calculateLevel(startDate)` w `lib/utils/calculate-level.ts`
@@ -101,3 +101,4 @@ I responsive działa do 375px
 - Level thresholds: 0-6m Początkujący | 6-18m Średniozaawansowany | 18-48m Zaawansowany | 48m+ Elitarny
 - Wszystkie pola w `useAutoSave` patrzą na cały formularz — jeden mutation dla całego profilu
 - Pills dla zakładek: border-radius 20px
+

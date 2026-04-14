@@ -5,7 +5,7 @@ import type { Database } from "./database.types";
 
 /**
  * Middleware helper for Supabase SSR auth.
- * Refreshes session cookies and protects /coach/** routes.
+ * Refreshes session cookies and protects authenticated coach routes.
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({
@@ -40,8 +40,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protect /coach/** routes
-  if (!user && request.nextUrl.pathname.startsWith("/coach")) {
+  const protectedPrefixes = ["/dashboard", "/athletes"];
+  const isProtectedRoute = protectedPrefixes.some((prefix) =>
+    request.nextUrl.pathname.startsWith(prefix),
+  );
+
+  // Protect authenticated coach routes.
+  if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -50,7 +55,7 @@ export async function updateSession(request: NextRequest) {
   // If logged in user tries to access /login, redirect to dashboard
   if (user && request.nextUrl.pathname === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/coach/dashboard";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 

@@ -11,7 +11,7 @@ related_story: backlog/stories/US-001-coach-login.md
 
 ## Overview & Goals
 
-This story delivers the foundation for every authenticated coach interaction in DudiCoach: a `/login` page (email + password), the supporting Supabase Auth wiring through `@supabase/ssr`, a placeholder `/coach/dashboard` to redirect into, and a `LogoutButton` for the dashboard navbar. Because session-refresh middleware and the SSR helper clients are already scaffolded under `lib/supabase/`, the work centers on (a) the form UI, (b) the server-side sign-in / sign-out entry points, and (c) the first real Supabase migration — a `public.profiles` table — so the migration + RLS pipeline is exercised end-to-end on day one.
+This story delivers the foundation for every authenticated coach interaction in DudiCoach: a `/login` page (email + password), the supporting Supabase Auth wiring through `@supabase/ssr`, a placeholder `/dashboard` to redirect into, and a `LogoutButton` for the dashboard navbar. Because session-refresh middleware and the SSR helper clients are already scaffolded under `lib/supabase/`, the work centers on (a) the form UI, (b) the server-side sign-in / sign-out entry points, and (c) the first real Supabase migration — a `public.profiles` table — so the migration + RLS pipeline is exercised end-to-end on day one.
 
 **Non-goals (explicit):**
 
@@ -144,7 +144,7 @@ This is a project-wide convention I am also encoding as **ADR-0001** (see "Open 
     password: string; // min 8 chars
   };
   ```
-- **Success path**: Sets session cookies via the SSR client, then `redirect("/coach/dashboard")` (Next.js will throw `NEXT_REDIRECT`, which the form treats as success).
+- **Success path**: Sets session cookies via the SSR client, then `redirect("/dashboard")` (Next.js will throw `NEXT_REDIRECT`, which the form treats as success).
 - **Failure response shape**:
   ```ts
   type SignInResult =
@@ -263,7 +263,7 @@ sequenceDiagram
   participant LoginForm as LoginForm (Client)
   participant Action as signInAction (Server)
   participant Supa as Supabase Auth
-  participant Dashboard as /coach/dashboard (RSC)
+  participant Dashboard as /dashboard (RSC)
 
   Coach->>Browser: GET /login
   Browser->>MW: request
@@ -281,8 +281,8 @@ sequenceDiagram
   Action->>Supa: signInWithPassword(...)
   Supa-->>Action: { user, session }
   Action->>Browser: Set-Cookie (sb-access-token, sb-refresh-token)
-  Action-->>Browser: redirect("/coach/dashboard")
-  Browser->>MW: GET /coach/dashboard
+  Action-->>Browser: redirect("/dashboard")
+  Browser->>MW: GET /dashboard
   MW->>Supa: getUser() (refresh)
   Supa-->>MW: { user }
   MW-->>Browser: NEXT
@@ -323,11 +323,11 @@ sequenceDiagram
   participant MW as Middleware
   participant Supa as Supabase Auth
 
-  Coach->>Browser: GET /coach/dashboard (no session cookies)
+  Coach->>Browser: GET /dashboard (no session cookies)
   Browser->>MW: request
   MW->>Supa: getUser() (refresh)
   Supa-->>MW: { user: null }
-  MW->>MW: pathname.startsWith("/coach") && !user
+  MW->>MW: isProtectedRoute && !user
   MW-->>Browser: 307 Redirect → /login
   Browser->>MW: GET /login
   MW-->>Browser: NEXT
@@ -366,10 +366,10 @@ export type LoginInput = z.infer<typeof loginSchema>;
 
 | # | Case | Handling |
 |---|---|---|
-| 1 | User tries `/login` while already logged in | Already handled by middleware (`if (user && pathname === "/login") redirect("/coach/dashboard")`). No frontend change needed. |
+| 1 | User tries `/login` while already logged in | Already handled by middleware (`if (user && pathname === "/login") redirect("/dashboard")`). No frontend change needed. |
 | 2 | Network error during `signInWithPassword` | Action catches the exception, returns `{ ok: false, error: "network" }`. Form renders `pl.auth.login.errorNetwork`. |
 | 3 | Supabase service down (5xx response) | Action catches, returns `{ ok: false, error: "generic" }`. Form renders `pl.auth.login.errorGeneric`. Server logs `console.error` (Sentry will pick it up once Sentry is wired in a later story; for US-001 stdout is acceptable). |
-| 4 | Cookies disabled in browser | Sign-in succeeds on the server but the browser drops `Set-Cookie`. The follow-up redirect to `/coach/dashboard` will be intercepted by middleware (no user) and bounce back to `/login` in an infinite-feeling loop. **Mitigation**: in `LoginForm`, after server reports `ok: true`, do a one-shot client-side `document.cookie` probe; if it's empty, render an inline notice using `pl.auth.login.errorGeneric` plus a hardcoded fallback `"Włącz pliki cookie w przeglądarce, aby się zalogować."` (we will add a dedicated `errorCookiesDisabled` key in pl.ts as part of this story — see "Files to create / modify"). |
+| 4 | Cookies disabled in browser | Sign-in succeeds on the server but the browser drops `Set-Cookie`. The follow-up redirect to `/dashboard` will be intercepted by middleware (no user) and bounce back to `/login` in an infinite-feeling loop. **Mitigation**: in `LoginForm`, after server reports `ok: true`, do a one-shot client-side `document.cookie` probe; if it's empty, render an inline notice using `pl.auth.login.errorGeneric` plus a hardcoded fallback `"Włącz pliki cookie w przeglądarce, aby się zalogować."` (we will add a dedicated `errorCookiesDisabled` key in pl.ts as part of this story — see "Files to create / modify"). |
 | 5 | Rate limiting | Supabase Auth has built-in IP-based rate limits (default ~30 requests/hour for password sign-in). For US-001 we rely entirely on those defaults. No custom throttling. If Supabase responds with a rate-limit error, we surface `pl.auth.login.errorGeneric` and let the user retry later. A future story may add explicit "too many attempts" UX. |
 | 6 | User submits an unverified email account | Supabase returns the same "Invalid login credentials" error. Treated as `invalid_credentials`. (Manual creation in Supabase Studio means we control whether `email_confirmed_at` is set.) |
 | 7 | Trigger fails to create the profile row | Login still succeeds (the trigger runs on `auth.users` insert, not on sign-in). `CoachNavbar` must defensively coalesce: `profile?.display_name ?? user.email ?? ""`. |
@@ -392,14 +392,14 @@ I do not write the tests; this section enumerates them so `qa-dev` and `qa-test`
 ### Integration tests (Vitest, mocked Supabase) — owned by qa-dev
 
 - `tests/integration/middleware.test.ts`
-  - Unauthenticated `/coach/dashboard` request → 307 to `/login`.
-  - Unauthenticated `/coach/athletes/abc` request → 307 to `/login`.
+  - Unauthenticated `/dashboard` request → 307 to `/login`.
+  - Unauthenticated `/athletes/abc` request → 307 to `/login`.
   - Unauthenticated `/login` request → no redirect (NEXT).
-  - Authenticated `/login` request → 307 to `/coach/dashboard`.
+  - Authenticated `/login` request → 307 to `/dashboard`.
   - Unauthenticated `/` request → no redirect (public landing page).
   - Cookie-refresh side-effect: middleware writes refreshed cookies onto the response.
 - `tests/integration/auth/sign-in-action.test.ts`
-  - Mock Supabase client; `signInAction` with valid creds calls `signInWithPassword` then redirects to `/coach/dashboard`.
+  - Mock Supabase client; `signInAction` with valid creds calls `signInWithPassword` then redirects to `/dashboard`.
   - Mock returns `Invalid login credentials` → action returns `{ ok: false, error: "invalid_credentials" }`.
   - Mock throws `TypeError: fetch failed` → action returns `{ ok: false, error: "network" }`.
   - Mock returns 503 → action returns `{ ok: false, error: "generic" }`.
@@ -410,10 +410,10 @@ I do not write the tests; this section enumerates them so `qa-dev` and `qa-test`
 
 Single spec `tests/e2e/coach-login.spec.ts` covering all five Gherkin ACs:
 
-- **AC-1 happy path**: seed test trainer in Supabase test project → visit `/login` → fill valid creds → submit → assert URL is `/coach/dashboard` → assert `pl.coach.dashboard.welcome` text visible → assert `pl.coach.dashboard.noAthletes` visible.
+- **AC-1 happy path**: seed test trainer in Supabase test project → visit `/login` → fill valid creds → submit → assert URL is `/dashboard` → assert `pl.coach.dashboard.welcome` text visible → assert `pl.coach.dashboard.noAthletes` visible.
 - **AC-2 wrong password**: visit `/login` → fill valid email + wrong password → submit → assert URL is still `/login` → assert error alert text equals `pl.auth.login.errorInvalid` → assert password input value is empty string → assert email input retains its value.
-- **AC-3 protected route**: visit `/coach/dashboard` cold (no cookies) → assert final URL is `/login`.
-- **AC-4 logout**: log in via UI → click `LogoutButton` → assert URL is `/login` → manually visit `/coach/dashboard` again → assert redirected back to `/login`.
+- **AC-3 protected route**: visit `/dashboard` cold (no cookies) → assert final URL is `/login`.
+- **AC-4 logout**: log in via UI → click `LogoutButton` → assert URL is `/login` → manually visit `/dashboard` again → assert redirected back to `/login`.
 - **AC-5 dark theme + Polish**: on `/login`, assert all visible labels match `pl.auth.login.*`. Assert background color via `await page.evaluate(() => getComputedStyle(document.body).backgroundColor)` resolves to `rgb(10, 15, 26)` (= `#0A0F1A`). Assert form card background resolves to `rgb(17, 24, 39)` (= `#111827`). Assert `font-family` on body computes to a string starting with `"DM Sans"`.
 - **a11y sweep**: `await injectAxe(page)` then `await checkA11y(page)` on the login page. No violations of WCAG 2.1 AA.
 
@@ -446,7 +446,7 @@ All paths are absolute. Existing files only modified where noted.
   - Uses `createClient()` from `lib/supabase/server.ts`.
   - Validates input with `loginSchema.safeParse`.
   - Catches and categorizes errors per the contract above.
-  - Calls `redirect("/coach/dashboard")` on success.
+  - Calls `redirect("/dashboard")` on success.
 - **CREATE** `C:\Users\dudeu\Desktop\Claude Code\DudiCoach\app\(coach)\logout\actions.ts`
   - Exports `signOutAction(): Promise<void>`.
   - `"use server"` directive at top.
@@ -485,7 +485,7 @@ All paths are absolute. Existing files only modified where noted.
 ### Files explicitly NOT touched
 
 - `C:\Users\dudeu\Desktop\Claude Code\DudiCoach\middleware.ts` — already correct.
-- `C:\Users\dudeu\Desktop\Claude Code\DudiCoach\lib\supabase\middleware.ts` — already correct; the `/coach/**` protection and `/login` redirect rules described in the AC-3 sequence diagram are already implemented.
+- `C:\Users\dudeu\Desktop\Claude Code\DudiCoach\lib\supabase\middleware.ts` — already correct; the protected route set (`/dashboard`, `/athletes/*`) and `/login` redirect rules described in the AC-3 sequence diagram are already implemented.
 - `C:\Users\dudeu\Desktop\Claude Code\DudiCoach\lib\supabase\server.ts` and `client.ts` — already correct.
 - `C:\Users\dudeu\Desktop\Claude Code\DudiCoach\app\layout.tsx` and `globals.css` — already provide DM Sans, dark theme tokens, and form element styling.
 
@@ -512,3 +512,4 @@ This story makes a project-wide commitment ("Server Actions for all mutations or
 - **Profile editing UI** — navbar reads `display_name`, but US-001 has no editor. A later story should add a settings page.
 - **Password reset** — explicitly out of scope. Track as a future story.
 - **MFA** — explicitly out of scope.
+
