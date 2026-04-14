@@ -1,7 +1,7 @@
 # Training Planner AI — Backlog
 
 **Owner**: backlog-manager agent
-**Last updated**: 2026-04-08
+**Last updated**: 2026-04-13
 **Sprint**: Sprint 1 (Foundation + First Vertical Slice)
 
 ## Status Legend
@@ -22,11 +22,11 @@
 
 | ID | Title | Epic | Priority | Estimate | Status | Notes |
 |---|---|---|---|---|---|---|
-| US-001 | Logowanie trenera do panelu | EPIC-A | P0 | S | Draft | Pierwsza story walidująca cały workflow |
-| US-002 | Backend CRUD zawodnika | EPIC-A | P0 | M | Draft | Tabela `athletes`, RLS, API routes |
-| US-003 | Frontend lista + edycja zawodnika z auto-save | EPIC-A | P0 | M | Draft | Dashboard, edytor, useAutoSave hook |
-| US-004 | Share code + panel zawodnika + real-time | EPIC-C | P0 | L | Draft | Kluczowa story — waliduje real-time sync |
-| US-005 | Generowanie planu AI przez Claude | EPIC-B | P0 | L | Draft | Integracja Anthropic SDK, prompt, JSON parsing |
+| US-001 | Logowanie trenera do panelu | EPIC-A | P0 | S | InE2E | Pierwsza story walidująca cały workflow |
+| US-002 | Backend CRUD zawodnika | EPIC-A | P0 | M | InE2E | Tabela `athletes`, RLS, API routes |
+| US-003 | Frontend lista + edycja zawodnika z auto-save | EPIC-A | P0 | M | InE2E | Dashboard, edytor, useAutoSave hook |
+| US-004 | Share code + panel zawodnika + real-time | EPIC-C | P0 | L | InDev | Design accepted, ADR-0003 written |
+| US-005 | Generowanie planu AI przez Claude | EPIC-B | P0 | L | InDev | Design accepted, ADR-0001 written |
 
 ## Backlog — v1.1 (post-MVP)
 

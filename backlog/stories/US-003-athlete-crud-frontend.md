@@ -4,12 +4,12 @@ title: Frontend lista i edycja zawodnika z auto-save
 role: trener
 priority: P0
 estimate: M
-status: Ready
+status: InE2E
 dependencies: [US-001, US-002]
 epic: EPIC-A
 design_required: true
 created: 2026-04-08
-updated: 2026-04-08
+updated: 2026-04-13
 ---
 
 # US-003 — Frontend lista + edycja zawodnika z auto-save
@@ -102,3 +102,39 @@ I responsive działa do 375px
 - Wszystkie pola w `useAutoSave` patrzą na cały formularz — jeden mutation dla całego profilu
 - Pills dla zakładek: border-radius 20px
 
+## Implementation Log
+
+### 2026-04-13 — developer-frontend
+
+Implemented all 20 new files and 2 modified files per design doc US-003-design.md.
+
+**New files created:**
+- `app/(coach)/layout.tsx` — CoachLayout wrapping QueryProvider
+- `app/(coach)/providers.tsx` — QueryClientProvider CC wrapper
+- `app/(coach)/athletes/[id]/page.tsx` — RSC athlete editor page
+- `lib/api/athletes.ts` — fetch functions, athleteKeys query factory, Athlete type
+- `lib/hooks/use-athletes.ts` — useAthletes, useAthlete, useCreateAthlete, useUpdateAthlete
+- `lib/hooks/use-auto-save.ts` — 800ms debounced auto-save hook (ADR-0001)
+- `lib/utils/calculate-level.ts` — calculateLevel() utility, all tier thresholds
+- `lib/constants/sports.ts` — SPORTS const array and Sport type
+- `components/coach/DashboardContent.tsx` — CC dashboard with athlete grid + dialog state
+- `components/coach/AthleteCard.tsx` — clickable athlete card with level badge
+- `components/coach/AthleteStatsBar.tsx` — "{count} zawodników" counter
+- `components/coach/LevelBadge.tsx` — colored pill badge from calculateLevel
+- `components/coach/FloatingActionButton.tsx` — fixed bottom-right + button
+- `components/coach/CreateAthleteDialog.tsx` — name-only create dialog with mutation
+- `components/coach/AthleteEditorShell.tsx` — editor with back button + tab pills
+- `components/coach/AthleteProfileForm.tsx` — 11-field profile form with auto-save
+- `components/coach/SaveStatusIndicator.tsx` — isSaving/lastSavedAt/saveError indicator
+- `components/coach/LevelDisplay.tsx` — read-only level + progress bar
+- `components/coach/TabPills.tsx` — pill tab navigation (Profil active, rest disabled)
+- `components/coach/BackButton.tsx` — ← Wstecz navigation button
+
+**Modified files:**
+- `app/(coach)/dashboard/page.tsx` — replaced empty state with DashboardContent + server-side initial data fetch
+- `lib/i18n/pl.ts` — added athleteCount, addAthlete, sport.*, createDialog.*, deleteConfirm.*
+
+**Checks:**
+- `npm run typecheck` — passes (1 pre-existing error in tests/integration/athletes/route.test.ts:557 — count: null type mismatch, not caused by this story)
+- `npm run lint` — passes (0 errors; 1 pre-existing warning in coverage/block-navigation.js)
+- `npx vitest run` — 84/84 tests pass

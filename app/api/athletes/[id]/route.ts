@@ -124,6 +124,48 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  // ---------------------------------------------------------------------
+  // Broadcast the updated row to the athlete panel when sharing is active.
+  // Channel name matches useRealtimeAthlete hook: `athlete:{share_code}`.
+  // coach_id and created_at are stripped — they are not exposed to the
+  // anonymous athlete panel (same shape as get_athlete_by_share_code RPC).
+  // Fire-and-forget: broadcast failures must not block the save response.
+  // See: docs/design/US-004-design.md §2.3, §3
+  // ---------------------------------------------------------------------
+  if (data.share_active) {
+    try {
+      const channel = supabase.channel(`athlete:${data.share_code}`);
+      await channel.send({
+        type: "broadcast",
+        event: "athlete_updated",
+        payload: {
+          id: data.id,
+          name: data.name,
+          age: data.age,
+          weight_kg: data.weight_kg,
+          height_cm: data.height_cm,
+          sport: data.sport,
+          training_start_date: data.training_start_date,
+          training_days_per_week: data.training_days_per_week,
+          session_minutes: data.session_minutes,
+          current_phase: data.current_phase,
+          goal: data.goal,
+          notes: data.notes,
+          share_code: data.share_code,
+          updated_at: data.updated_at,
+        },
+      });
+      await supabase.removeChannel(channel);
+    } catch (broadcastErr) {
+      console.error("[PATCH /api/athletes/[id]] Broadcast failed (non-fatal)", {
+        message:
+          broadcastErr instanceof Error
+            ? broadcastErr.message
+            : String(broadcastErr),
+      });
+    }
+  }
+
   return NextResponse.json({ data });
 }
 

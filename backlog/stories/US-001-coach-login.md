@@ -4,7 +4,7 @@ title: Logowanie trenera do panelu
 role: trener
 priority: P0
 estimate: S
-status: InDevTests
+status: InE2E
 dependencies: []
 epic: EPIC-A
 design_required: true
