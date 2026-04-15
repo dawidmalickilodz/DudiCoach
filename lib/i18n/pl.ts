@@ -65,6 +65,8 @@ export const pl = {
       welcome: "Witaj z powrotem!",
       noAthletes: "Nie masz jeszcze żadnych zawodników.",
       noAthletesCta: "Dodaj pierwszego zawodnika",
+      athleteCount: (count: number) =>
+        `${count} ${count === 1 ? "zawodnik" : "zawodników"}`,
       stats: {
         athletes: "Zawodnicy",
         plans: "Plany",
@@ -104,6 +106,7 @@ export const pl = {
         advanced: "Zaawansowany",
         elite: "Elitarny",
       },
+      levelMonths: (months: number) => `Staż treningowy: ${months} mies.`,
       phase: {
         preparatory: "Przygotowawczy",
         base: "Bazowy",
