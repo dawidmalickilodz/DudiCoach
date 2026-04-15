@@ -9,12 +9,19 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 // ---------------------------------------------------------------------------
 
 describe("checkRateLimit", () => {
+  const originalRateLimitEnv = process.env.AI_RATE_LIMIT_PER_MIN;
+
   beforeEach(() => {
     vi.resetModules();
     vi.useFakeTimers();
   });
 
   afterEach(() => {
+    if (originalRateLimitEnv === undefined) {
+      delete process.env.AI_RATE_LIMIT_PER_MIN;
+    } else {
+      process.env.AI_RATE_LIMIT_PER_MIN = originalRateLimitEnv;
+    }
     vi.useRealTimers();
   });
 
@@ -81,5 +88,27 @@ describe("checkRateLimit", () => {
     // retryAfterMs should be close to 30_000ms (+/- tolerance)
     expect(blocked.retryAfterMs).toBeGreaterThan(25_000);
     expect(blocked.retryAfterMs).toBeLessThanOrEqual(30_001);
+  });
+
+  it("falls back to default limit when AI_RATE_LIMIT_PER_MIN is invalid", async () => {
+    process.env.AI_RATE_LIMIT_PER_MIN = "abc";
+    const { checkRateLimit } = await import("@/lib/ai/rate-limiter");
+
+    expect(checkRateLimit("coach-1").allowed).toBe(true);
+    expect(checkRateLimit("coach-1").allowed).toBe(true);
+    expect(checkRateLimit("coach-1").allowed).toBe(true);
+    expect(checkRateLimit("coach-1").allowed).toBe(false);
+  });
+
+  it("uses configured limit when AI_RATE_LIMIT_PER_MIN is a valid positive number", async () => {
+    process.env.AI_RATE_LIMIT_PER_MIN = "5";
+    const { checkRateLimit } = await import("@/lib/ai/rate-limiter");
+
+    expect(checkRateLimit("coach-1").allowed).toBe(true);
+    expect(checkRateLimit("coach-1").allowed).toBe(true);
+    expect(checkRateLimit("coach-1").allowed).toBe(true);
+    expect(checkRateLimit("coach-1").allowed).toBe(true);
+    expect(checkRateLimit("coach-1").allowed).toBe(true);
+    expect(checkRateLimit("coach-1").allowed).toBe(false);
   });
 });

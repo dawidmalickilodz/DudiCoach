@@ -155,23 +155,14 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
         status: lastError.status,
         message: lastError.message,
       });
-      return NextResponse.json(
-        {
-          error: "Nie udało się wygenerować planu.",
-          details: lastError.message,
-        },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: "Nie udało się wygenerować planu." }, { status: 500 });
     }
     const message =
       lastError instanceof Error ? lastError.message : String(lastError);
     console.error("[POST /plans] Unexpected error during generation", {
       message,
     });
-    return NextResponse.json(
-      { error: "Nie udało się wygenerować planu.", details: message },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Nie udało się wygenerować planu." }, { status: 500 });
   }
 
   // --- Parse + validate JSON (deterministic — no retry) ---
@@ -183,10 +174,7 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     console.error("[POST /plans] Plan JSON parse/validation failed", {
       message,
     });
-    return NextResponse.json(
-      { error: "Nie udało się wygenerować planu.", details: message },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Nie udało się wygenerować planu." }, { status: 500 });
   }
 
   // --- Persist plan ---

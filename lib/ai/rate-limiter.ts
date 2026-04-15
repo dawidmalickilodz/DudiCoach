@@ -7,10 +7,15 @@
 // ---------------------------------------------------------------------------
 
 const WINDOW_MS = 60_000; // 1 minute
+const DEFAULT_MAX_REQUESTS = 3;
+const parsedMaxRequests =
+  process.env.AI_RATE_LIMIT_PER_MIN == null
+    ? Number.NaN
+    : Number(process.env.AI_RATE_LIMIT_PER_MIN);
 const MAX_REQUESTS =
-  process.env.AI_RATE_LIMIT_PER_MIN != null
-    ? parseInt(process.env.AI_RATE_LIMIT_PER_MIN, 10)
-    : 3;
+  Number.isFinite(parsedMaxRequests) && parsedMaxRequests > 0
+    ? Math.floor(parsedMaxRequests)
+    : DEFAULT_MAX_REQUESTS;
 
 // Map<identifier, timestamp[]>
 const windows = new Map<string, number[]>();

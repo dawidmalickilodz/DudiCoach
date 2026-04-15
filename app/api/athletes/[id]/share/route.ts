@@ -5,6 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 
 // Next.js 16: params is a Promise — must be awaited.
 type RouteContext = { params: Promise<{ id: string }> };
+const NOT_FOUND_ERROR_CODE = "PGRST116";
+
+function isNotFoundError(error: { code?: string } | null): boolean {
+  return error?.code === NOT_FOUND_ERROR_CODE;
+}
 
 // ---------------------------------------------------------------------------
 // Body schema
@@ -66,13 +71,22 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       .select("share_code, share_active")
       .single();
 
-    if (error || !data) {
-      if (error) {
-        console.error("[POST /share activate/deactivate] Supabase error", {
-          code: error.code,
-          hint: error.hint,
-        });
+    if (error) {
+      if (isNotFoundError(error)) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
+
+      console.error("[POST /share activate/deactivate] Supabase error", {
+        code: error.code,
+        hint: error.hint,
+      });
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+      );
+    }
+
+    if (!data) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
