@@ -22,11 +22,11 @@
 
 | ID | Title | Epic | Priority | Estimate | Status | Notes |
 |---|---|---|---|---|---|---|
-| US-001 | Logowanie trenera do panelu | EPIC-A | P0 | S | InE2E | Waiting for coach E2E credentials |
-| US-002 | Backend CRUD zawodnika | EPIC-A | P0 | M | InE2E | Waiting for coach E2E credentials |
-| US-003 | Frontend lista + edycja zawodnika z auto-save | EPIC-A | P0 | M | InE2E | Draft PR #6 open |
-| US-004 | Share code + panel zawodnika + real-time | EPIC-C | P0 | L | InE2E | E2E invalid-code checks passing on desktop/mobile |
-| US-005 | Generowanie planu AI przez Claude | EPIC-B | P0 | L | InE2E | Live AI path gated by E2E_ALLOW_AI_CALL |
+| US-001 | Logowanie trenera do panelu | EPIC-A | P0 | S | InE2E | Review Approve 2026-04-10 (reviews/US-001-review.md) - awaiting E2E auth secrets |
+| US-002 | Backend CRUD zawodnika | EPIC-A | P0 | M | InE2E | Review Approve 2026-04-10 (reviews/US-002-review.md) - awaiting E2E auth secrets |
+| US-003 | Frontend lista + edycja zawodnika z auto-save | EPIC-A | P0 | M | InE2E | Review Approve 2026-04-15 (reviews/US-003-review.md) - awaiting E2E auth secrets |
+| US-004 | Share code + panel zawodnika + real-time | EPIC-C | P0 | L | InE2E | Review Approve 2026-04-15 (reviews/US-004-review.md) - awaiting E2E auth secrets |
+| US-005 | Generowanie planu AI przez Claude | EPIC-B | P0 | L | InE2E | Review Approve 2026-04-15 (reviews/US-005-review.md) - awaiting E2E auth secrets |
 
 ## Operational Notes (2026-04-15)
 
@@ -46,6 +46,7 @@
 | US-016 | Export planu do PDF | EPIC-B | P1 | S | Draft |
 | US-017 | Wiele planow per zawodnik z historia | EPIC-B | P1 | M | Draft |
 | US-018 | Podsumowanie cyklu (wyniki + notatki trenera) | EPIC-B | P1 | S | Draft |
+| US-019 | Dashboard hydration - initialData w useAthletes query | EPIC-A | P2 | XS | Draft |
 
 ## Backlog - v1.2+ (nice-to-have)
 

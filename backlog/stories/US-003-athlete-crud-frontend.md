@@ -9,7 +9,7 @@ dependencies: [US-001, US-002]
 epic: EPIC-A
 design_required: true
 created: 2026-04-08
-updated: 2026-04-13
+updated: 2026-04-15
 ---
 
 # US-003 — Frontend lista + edycja zawodnika z auto-save
