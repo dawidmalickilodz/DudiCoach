@@ -116,7 +116,7 @@ test.describe("US-004 — share code panel + realtime", () => {
     await expect(submit).toBeEnabled();
     await submit.click();
 
-    await expect(page.getByRole("alert")).toContainText(
+    await expect(page.locator("#share-code-error")).toContainText(
       /Nieprawidłowy kod/i,
     );
     // Stays on the home page — no navigation.
