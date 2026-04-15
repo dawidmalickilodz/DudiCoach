@@ -51,7 +51,20 @@ E2E_ALLOW_AI_CALL="1" \
 npm run test:e2e
 ```
 
-## CI Setup (GitHub Actions)
+## Secrets Setup - Step 2
+
+### Vercel Dashboard (recommended source of truth)
+
+1. Open [https://vercel.com](https://vercel.com) -> your team -> project `dudi-coach`.
+2. Go to `Settings` -> `Environment Variables`.
+3. Add:
+   - `E2E_COACH_EMAIL`
+   - `E2E_COACH_PASSWORD`
+   - optional: `E2E_ALLOW_AI_CALL`
+4. Scope to environments used by E2E (`Preview`, and optionally `Production`).
+5. Save and re-deploy preview (or push a new commit) so env vars are active.
+
+### GitHub Actions (if E2E job runs in GH)
 
 1. Repository -> `Settings` -> `Secrets and variables` -> `Actions`.
 2. Add:

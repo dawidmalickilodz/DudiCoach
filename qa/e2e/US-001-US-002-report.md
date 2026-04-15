@@ -29,6 +29,14 @@ Full auth + API CRUD verification is still blocked by missing coach credentials 
    - Command: `PLAYWRIGHT_BASE_URL=<pr6-preview> npm run test:e2e`
    - Result: process succeeded, all US-001/US-002 scenarios skipped (missing coach credentials)
 
+3. Local re-check on PR #6 branch:
+   - Command: `npm run typecheck && npm run test && npm run test:e2e`
+   - Result:
+     - `typecheck`: passed
+     - `test`: passed (`180/180`)
+     - `test:e2e`: passed process (`2 passed`, `22 skipped`, `0 failed`)
+   - Note: all US-001/US-002 scenarios still skipped without `E2E_COACH_*` credentials.
+
 ## Planned Coverage (when credentials are available)
 
 - US-001:

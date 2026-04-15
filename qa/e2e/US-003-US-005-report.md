@@ -46,4 +46,4 @@ PLAYWRIGHT_BASE_URL=https://dudi-coach-git-codex-us-afb073-dawidmalickilodz-7164
 ## Deployment Notes
 
 - PR #6 preview route health: `/` and `/login` return 200.
-- Production domain still depends on merging PR #5 hotfix into `main`.
+- PR #5 hotfix is already merged to `main`; production `/` and `/login` return 200.

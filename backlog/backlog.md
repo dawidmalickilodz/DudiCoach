@@ -30,7 +30,7 @@
 
 ## Operational Notes (2026-04-15)
 
-- PR #5 (hotfix): `fix: stabilize main middleware when Supabase env vars are missing` is open and should be merged first to stop production 500.
+- PR #5 (hotfix) is merged to `main` as `6762f5c`; production `/` and `/login` now return 200.
 - PR #6 (draft): US-003/US-004/US-005 bundle is open with working preview and updated E2E specs.
 
 ## Backlog - v1.1 (post-MVP)
