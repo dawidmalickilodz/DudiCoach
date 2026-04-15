@@ -1,15 +1,14 @@
 ---
 branch: feat/us-004-us-005-frontend
 base: main
-status: draft
-depends_on: PR #3 (codex/high-priority-api-e2e-fixes)
+status: ready
+depends_on: PR #3 (merged 2026-04-15)
 ---
 
 # PR — US-003 + US-004 + US-005 frontend
 
-Target: `main`. **Must merge AFTER PR #3** (this branch was cut from PR #3's tip;
-rebase onto `main` after PR #3 lands to keep diff clean — otherwise PR #3's 3
-commits will appear in this PR too.)
+Target: `main`. **Rebased** onto post-merge `main` (PR #3 landed 2026-04-15)
+so the diff shows only the 2 stories' worth of commits.
 
 ## Stories
 
@@ -61,18 +60,30 @@ commits will appear in this PR too.)
 - `npm run typecheck` — clean (`tsc --noEmit` — 0 errors)
 - `npm run lint` — clean (0 errors, 0 warnings)
 - `npm run test` — **180/180 pass** (13 test files)
+- `npx playwright test --list` — 12 specs × 2 projects = 24 scheduled tests
+  (includes the new US-003/US-004/US-005 E2E specs below)
 - Manual browser preview: home share-code form + 404 paths verified (see the
   "Manual Verification" sections of `qa/dev/US-004-report.md` and
   `qa/dev/US-005-report.md`)
 
+### New E2E coverage (`tests/e2e/`)
+
+- `US-003.spec.ts` — 2 tests: full athlete CRUD via dialog + auto-save level
+  badge update, and dialog validation (empty name).
+- `US-004.spec.ts` — 3 tests: home share-code form validation, coach
+  activate/reset/deactivate via the Online tab, and two-browser-context
+  realtime sync (coach PATCH → public page reflects change in ≤5 s).
+- `US-005.spec.ts` — 2 tests: 422 "incomplete data" error surfaces in the
+  Plany tab, and an opt-in live Claude happy path gated on
+  `E2E_ALLOW_AI_CALL=1` (skipped in CI by default).
+
 ### What is NOT covered here
 
-- Live Claude AI happy path (AC-3/AC-4 of US-005) — owned by `qa-test` E2E with
-  a recorded fixture; cost + nondeterminism rules it out of CI.
-- Two-browser-context realtime sync (AC-6/AC-7 of US-004) — owned by `qa-test`
-  E2E (two Playwright contexts).
+- Live Claude AI happy path in CI (AC-3/AC-4 of US-005) — we ship the spec but
+  keep it opt-in via `E2E_ALLOW_AI_CALL=1`; cost + nondeterminism rules it out
+  of the default `npm run test:e2e` run.
 - Injury-aware prompting (AC-4 of US-005) — semantic check on Claude's output;
-  also `qa-test` territory.
+  future `qa-test` territory once we have a recorded fixture or eval harness.
 
 ## New deps
 
