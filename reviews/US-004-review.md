@@ -47,3 +47,13 @@ None (0 blocking).
 ## Verdict
 
 **Approve**
+
+## Follow-up applied — 2026-04-15
+
+Post-review audit found 1 blocking issue in scope of this story:
+
+- **[P1] Error misclassification in share API activate/deactivate** (`app/api/athletes/[id]/share/route.ts:69-77`) — every Supabase error mapped to 404, masking backend failures. Fixed: `error?.code === "PGRST116"` or `!error && !data` → 404; any other error → 500 `{ error: "Nie udało się zaktualizować udostępniania." }` with `console.error` on the 500 branch. Style aligns with the `reset` path already in the file.
+
+Integration tests added in `tests/integration/athletes/share-route.test.ts` (4 cases: PGRST116 → 404, null-without-error → 404, other error → 500, happy path regression).
+
+Story remains `InE2E` — fix is a follow-up to this Approve verdict, not a Rework bounce. See hotfix commit `9fd2758` on branch `codex/us-004-us-005-review`.

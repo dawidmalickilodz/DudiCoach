@@ -81,7 +81,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
         hint: error.hint,
       });
       return NextResponse.json(
-        { error: "Internal server error" },
+        { error: "Nie udało się zaktualizować udostępniania." },
         { status: 500 },
       );
     }

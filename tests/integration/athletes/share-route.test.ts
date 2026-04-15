@@ -82,7 +82,6 @@ describe("POST /api/athletes/[id]/share (activate/deactivate)", () => {
     const json = await response.json();
 
     expect(response.status).toBe(500);
-    expect(json.error).toBe("Internal server error");
+    expect(json.error).toBe("Nie udało się zaktualizować udostępniania.");
   });
 });
-

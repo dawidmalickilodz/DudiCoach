@@ -49,3 +49,18 @@ None (0 blocking).
 ## Verdict
 
 **Approve**
+
+## Follow-up applied — 2026-04-15
+
+Post-review audit found 2 blocking issues in scope of this story:
+
+- **[P2] Rate limiter silently disabled by malformed env** (`lib/ai/rate-limiter.ts:10-13`) — `parseInt("abc", 10)` produced `NaN`, and `timestamps.length >= NaN` was always `false` → rate limit completely bypassed. Cost + abuse risk. Fixed: introduced `DEFAULT_MAX_REQUESTS = 3` and guard `Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_REQUESTS`. Malformed, zero, or negative values all fall back safely.
+- **[P2] Plans API leaked internal error details to client** (`app/api/athletes/[id]/plans/route.ts:158-189`) — three 500 response bodies returned `details: lastError.message`, exposing Anthropic SDK internals and parser error substrings (which could include fragments of athlete input). Fixed: removed `details` field from all three 500 bodies; `console.error` paths retained so server-side diagnostics are unchanged. Client-side error mapping unaffected (checked: `lib/api/plans.ts` only destructures `json.error`).
+
+Tests added:
+- `tests/unit/lib/ai/rate-limiter.test.ts` extended — 6 new cases covering `"abc"`, `""`, `"0"`, `"-2"`, `"5"` (regression), and `undefined` env values.
+- `tests/integration/athletes/plans-route.test.ts` created — 4 cases including APIError/parser/unexpected all returning 500 with `body.details === undefined`.
+
+Total test count: 180 → 187. All green, typecheck + lint clean.
+
+Story remains `InE2E` — fixes are follow-ups to this Approve verdict, not a Rework bounce. See hotfix commit `9fd2758` on branch `codex/us-004-us-005-review`.
