@@ -1,64 +1,76 @@
 ---
-story_group: US-001-US-002
+story_group: US-001-US-005
 owner: qa-test
 stage: e2e
-updated: 2026-04-14
+updated: 2026-04-15
 ---
 
-# Runbook E2E (US-001 + US-002)
+# Runbook E2E (US-001 to US-005)
 
-## Cel
+## Goal
 
-Uruchomienie pełnych testów E2E auth + API CRUD przeciw środowisku preview/staging.
+Run real E2E checks against preview/staging for:
+- auth flow
+- athlete CRUD flow
+- share code + realtime flow
+- AI plan generation flow
 
-## Wymagane sekrety
+## Required Secrets
 
-- `PLAYWRIGHT_BASE_URL` — URL preview/staging (np. `https://<deployment>.vercel.app`)
-- `E2E_COACH_EMAIL` — email testowego konta trenera
-- `E2E_COACH_PASSWORD` — hasło testowego konta trenera
+- `PLAYWRIGHT_BASE_URL` - preview/staging URL (for example `https://<deployment>.vercel.app`)
+- `E2E_COACH_EMAIL` - coach test account email
+- `E2E_COACH_PASSWORD` - coach test account password
 
-Bez `E2E_COACH_EMAIL` i `E2E_COACH_PASSWORD` scenariusze auth są celowo `skip`.
+Optional:
+- `E2E_ALLOW_AI_CALL=1` - enables live Anthropic happy path in US-005
 
-## Szybkie uruchomienie lokalnie (PowerShell)
+## Expected Skip Behavior
+
+- If `E2E_COACH_*` are missing, authenticated tests are skipped intentionally.
+- If `E2E_ALLOW_AI_CALL` is missing, US-005 live AI happy path is skipped intentionally.
+
+## Local Run (PowerShell)
 
 ```powershell
 $env:PLAYWRIGHT_BASE_URL = "https://<deployment>.vercel.app"
 $env:E2E_COACH_EMAIL = "coach@example.com"
 $env:E2E_COACH_PASSWORD = "<strong-password>"
+# optional
+$env:E2E_ALLOW_AI_CALL = "1"
+
 npm run test:e2e
 ```
 
-## Szybkie uruchomienie lokalnie (bash)
+## Local Run (bash)
 
 ```bash
 PLAYWRIGHT_BASE_URL="https://<deployment>.vercel.app" \
 E2E_COACH_EMAIL="coach@example.com" \
 E2E_COACH_PASSWORD="<strong-password>" \
+E2E_ALLOW_AI_CALL="1" \
 npm run test:e2e
 ```
 
-## Ustawienie sekretów w CI (GitHub Actions)
+## CI Setup (GitHub Actions)
 
-1. Repo -> `Settings` -> `Secrets and variables` -> `Actions`.
-2. Dodaj:
+1. Repository -> `Settings` -> `Secrets and variables` -> `Actions`.
+2. Add:
    - `PLAYWRIGHT_BASE_URL`
    - `E2E_COACH_EMAIL`
    - `E2E_COACH_PASSWORD`
-3. W workflow przekazuj je do joba E2E przez `env:`.
+   - (optional) `E2E_ALLOW_AI_CALL`
+3. Expose secrets in the E2E job `env`.
 
-## Oczekiwany wynik
+## Expected Outcomes
 
-- US-001:
-  - ochrona `/dashboard`
-  - błędne logowanie zostaje na `/login`
-  - poprawne logowanie przekierowuje na dashboard
-  - logout przekierowuje na `/login`
-- US-002:
-  - pełny CRUD przez API (`POST/GET/PATCH/DELETE`)
-  - cleanup w `finally`
+- US-001: protected route, invalid login, valid login, logout.
+- US-002: authenticated API CRUD with cleanup.
+- US-003: coach CRUD frontend and auto-save UX.
+- US-004: invalid share code handling + authenticated realtime scenarios.
+- US-005: incomplete-data error mapping + optional live AI happy path.
 
-## Artefakty i debug
+## Artifacts
 
 - HTML report: `playwright-report/`
-- Artefakty awarii: `test-results/`
-- Trace/screenshot/video zapisują się tylko przy błędach/retry (zgodnie z `playwright.config.ts`).
+- Failure artifacts: `test-results/`
+- Traces/videos/screenshots are collected only on failure/retry.

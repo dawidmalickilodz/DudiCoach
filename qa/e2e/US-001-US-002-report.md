@@ -3,33 +3,31 @@ story_group: US-001-US-002
 agent: qa-test
 stage: e2e
 verdict: blocked-missing-credentials
-date: 2026-04-14
+date: 2026-04-15
 ---
 
-# E2E Report - US-001 + US-002 (High-priority Fix Pack)
+# E2E Report - US-001 + US-002
 
 ## Current Status
 
-E2E suite is wired correctly and runs against Preview.
-Full auth + CRUD verification is currently blocked by missing test coach credentials.
+Suite wiring is correct and runs on preview deployments.
+Full auth + API CRUD verification is still blocked by missing coach credentials in the local environment.
 
 ## Environment Check
 
-- `PLAYWRIGHT_BASE_URL`: provided for verification run
-- `E2E_COACH_EMAIL`: missing
-- `E2E_COACH_PASSWORD`: missing
+- `PLAYWRIGHT_BASE_URL`: set during verification runs
+- `E2E_COACH_EMAIL`: missing locally
+- `E2E_COACH_PASSWORD`: missing locally
 
 ## Executions
 
-1. Local run without `PLAYWRIGHT_BASE_URL`:
-   - Command: `npm run test:e2e`
-   - Result: failed before tests
-   - Reason: Playwright started local `next dev`; app failed because Supabase URL/key env vars were not set.
+1. Hotfix preview run (PR #5 preview URL):
+   - Command: `PLAYWRIGHT_BASE_URL=<pr5-preview> npm run test:e2e`
+   - Result: process succeeded, smoke scenarios skipped (missing coach credentials)
 
-2. Preview run with `PLAYWRIGHT_BASE_URL`:
-   - Command: `PLAYWRIGHT_BASE_URL=https://dudi-coach-7qtwjevpw-dawidmalickilodz-7164s-projects.vercel.app npm run test:e2e`
-   - Result: process succeeded, **10 tests skipped**
-   - Reason: suite intentionally skips authenticated scenarios when coach credentials are not set.
+2. Feature preview run (PR #6 preview URL):
+   - Command: `PLAYWRIGHT_BASE_URL=<pr6-preview> npm run test:e2e`
+   - Result: process succeeded, all US-001/US-002 scenarios skipped (missing coach credentials)
 
 ## Planned Coverage (when credentials are available)
 
@@ -42,18 +40,16 @@ Full auth + CRUD verification is currently blocked by missing test coach credent
   - authenticated API CRUD (`POST/GET/PATCH/DELETE`)
   - cleanup in `finally`
 
-## Remaining Step to Unblock
+## Unblock Step
 
-Set these secrets (locally or CI) and rerun:
-
+Set locally or in CI:
 - `E2E_COACH_EMAIL`
 - `E2E_COACH_PASSWORD`
 
-Then execute:
+Then run:
 
 ```bash
 npm run test:e2e
 ```
 
-Detailed setup: `qa/e2e/US-001-US-002-runbook.md`.
-
+Runbook: `qa/e2e/US-001-US-002-runbook.md`
