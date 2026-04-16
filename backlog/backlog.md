@@ -34,7 +34,7 @@
 |---|---|---|---|---|---|---|
 | US-020 | Unauth API routes — 401 zamiast 500 | EPIC-A | P2 | S | InDevTests | Hardening; impl 7c1e390; 194/194 tests |
 | US-019 | Dashboard hydration - initialData w useAthletes query | EPIC-A | P2 | XS | InDevTests | Perf fix; initialData + staleTime 30s; 198/198 tests |
-| US-011 | Kontuzje zawodnika - lista z severity | EPIC-A | P1 | M | Ready | Design proposed (docs/design/US-011-design.md) |
+| US-011 | Kontuzje zawodnika - lista z severity | EPIC-A | P1 | M | InE2E | Backend+frontend complete; `tests/e2e/US-011.spec.ts` added; local run skipped without `E2E_COACH_*` |
 | US-012 | Testy sprawnościowe - dynamiczne per sport | EPIC-A | P1 | M | Draft | Nowa tabela fitness_test_results + katalog testów |
 
 ## Operational Notes (2026-04-15)
@@ -47,6 +47,7 @@
 - Full E2E suite executed locally with auth credentials: `22 passed`, `2 skipped` (US-005 AI opt-in), `0 failed`.
 - US-003 auto-save race in E2E was stabilized by waiting for persisted API snapshot before back navigation.
 - Full E2E suite executed on PR #6 preview after env/redeploy: `22 passed`, `2 skipped`, `0 failed`.
+- US-011: dedicated Playwright spec added (`tests/e2e/US-011.spec.ts`); local run result `0 passed`, `4 skipped`, `0 failed` due missing `E2E_COACH_EMAIL` / `E2E_COACH_PASSWORD`.
 
 ## Backlog - v1.1 (post-MVP)
 

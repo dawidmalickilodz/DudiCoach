@@ -7,6 +7,7 @@ Current Playwright suite covers:
 - `US-003.spec.ts` -> coach athlete CRUD frontend
 - `US-004.spec.ts` -> share code panel + realtime
 - `US-005.spec.ts` -> AI plan generation
+- `US-011.spec.ts` -> injuries tab CRUD + public active-only injuries view
 
 ## Required Environment Variables
 
@@ -60,3 +61,4 @@ npm run test:e2e
 - Preview on PR #6 is healthy (`/` and `/login` return 200).
 - Full authenticated flows are still blocked by missing coach credentials in the local environment.
 - Unauthenticated US-004 invalid-code checks pass on desktop and mobile.
+- US-011 spec is present and runnable; without `E2E_COACH_*` it reports `4 skipped` by design.

@@ -4,7 +4,7 @@ title: Kontuzje zawodnika - lista z severity
 role: trener
 priority: P1
 estimate: M
-status: Ready
+status: InE2E
 dependencies: [US-002, US-003]
 epic: EPIC-A
 design_required: true
@@ -119,19 +119,19 @@ Kręgosłup lędźwiowy, Biodro, Kolano, Kostka, Stopa, Udo (przód), Udo (tył)
 
 ## Definition of Done
 
-- [ ] Migracja SQL: tabela `injuries` z RLS
-- [ ] API route: `app/api/athletes/[id]/injuries/route.ts` (GET, POST)
-- [ ] API route: `app/api/athletes/[id]/injuries/[injuryId]/route.ts` (PATCH, DELETE)
-- [ ] Komponent: `InjuriesTab` w edytorze zawodnika
-- [ ] Komponent: `InjuryForm` (dialog do dodawania / inline edycja)
-- [ ] Komponent: `InjurySeverityBadge`
-- [ ] Komponent: `InjuryStatusBadge`
-- [ ] Auto-save na edycji (debounce 800ms)
-- [ ] Panel zawodnika: sekcja read-only z aktywnymi kontuzjami
-- [ ] Realtime: zmiana kontuzji broadcastowana do panelu zawodnika
-- [ ] Tłumaczenia w `lib/i18n/pl.ts`
-- [ ] Unit testy: badge'e, form validation
-- [ ] Integration testy: API CRUD + RLS
+- [x] Migracja SQL: tabela `injuries` z RLS
+- [x] API route: `app/api/athletes/[id]/injuries/route.ts` (GET, POST)
+- [x] API route: `app/api/athletes/[id]/injuries/[injuryId]/route.ts` (PATCH, DELETE)
+- [x] Komponent: `InjuriesTab` w edytorze zawodnika
+- [x] Komponent: `InjuryForm` (dialog do dodawania / inline edycja)
+- [x] Komponent: `InjurySeverityBadge`
+- [x] Komponent: `InjuryStatusBadge`
+- [x] Auto-save na edycji (debounce 800ms)
+- [x] Panel zawodnika: sekcja read-only z aktywnymi kontuzjami
+- [x] Realtime: zmiana kontuzji broadcastowana do panelu zawodnika
+- [x] Tłumaczenia w `lib/i18n/pl.ts`
+- [x] Unit testy: badge'e, form validation
+- [x] Integration testy: API CRUD + RLS
 - [ ] E2E test: dodaj / edytuj / usuń kontuzję
 - [ ] Code review approved
 - [ ] Deployed
