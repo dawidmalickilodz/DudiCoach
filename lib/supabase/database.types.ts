@@ -77,6 +77,53 @@ export type Database = {
         }
         Relationships: []
       }
+      injuries: {
+        Row: {
+          athlete_id: string
+          body_location: string
+          created_at: string
+          id: string
+          injury_date: string
+          name: string
+          notes: string | null
+          severity: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          athlete_id: string
+          body_location: string
+          created_at?: string
+          id?: string
+          injury_date?: string
+          name: string
+          notes?: string | null
+          severity: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          athlete_id?: string
+          body_location?: string
+          created_at?: string
+          id?: string
+          injury_date?: string
+          name?: string
+          notes?: string | null
+          severity?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "injuries_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -139,6 +186,21 @@ export type Database = {
     }
     Functions: {
       generate_share_code: { Args: never; Returns: string }
+      get_active_injuries_by_share_code: {
+        Args: { p_code: string }
+        Returns: {
+          athlete_id: string
+          body_location: string
+          created_at: string
+          id: string
+          injury_date: string
+          name: string
+          notes: string | null
+          severity: number
+          status: string
+          updated_at: string
+        }[]
+      }
       get_athlete_by_share_code: {
         Args: { p_code: string }
         Returns: {
