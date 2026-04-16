@@ -53,15 +53,16 @@
 | US-017 | Wiele planow per zawodnik z historia | EPIC-B | P1 | M | Draft |
 | US-018 | Podsumowanie cyklu (wyniki + notatki trenera) | EPIC-B | P1 | S | Draft |
 | US-019 | Dashboard hydration - initialData w useAthletes query | EPIC-A | P2 | XS | Draft |
+| US-020 | Unauth API routes — 401 zamiast 500 | EPIC-A | P2 | S | Draft |
 
 ## Backlog - v1.2+ (nice-to-have)
 
 | ID | Title | Epic | Priority |
 |---|---|---|---|
-| US-020 | Galeria wideo cwiczen | EPIC-B | P2 |
-| US-021 | Raportowanie RPE i bolu przez zawodnika | EPIC-C | P2 |
-| US-022 | Progresje AI-rekomendowane na bazie feedbacku | EPIC-B | P2 |
-| US-023 | Template'y planow (duplikacja) | EPIC-B | P2 |
+| US-021 | Galeria wideo cwiczen | EPIC-B | P2 |
+| US-022 | Raportowanie RPE i bolu przez zawodnika | EPIC-C | P2 |
+| US-023 | Progresje AI-rekomendowane na bazie feedbacku | EPIC-B | P2 |
+| US-024 | Template'y planow (duplikacja) | EPIC-B | P2 |
 
 ## Epics
 
