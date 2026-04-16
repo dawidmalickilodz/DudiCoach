@@ -1,14 +1,16 @@
-# E2E Runbook (US-001 / US-002)
+# E2E Handbook (US-001 to US-005)
 
-## Cel
+## Scope
 
-Zweryfikować krytyczne przepływy high-priority:
-- US-001: auth (redirect ochronny, logowanie poprawne/błędne, wylogowanie)
-- US-002: backend CRUD zawodnika przez realne endpointy API
+Current Playwright suite covers:
+- `smoke.spec.ts` -> US-001 + US-002
+- `US-003.spec.ts` -> coach athlete CRUD frontend
+- `US-004.spec.ts` -> share code panel + realtime
+- `US-005.spec.ts` -> AI plan generation
 
-## Wymagane zmienne środowiskowe
+## Required Environment Variables
 
-Ustaw w `.env.local` (lokalnie) lub jako sekrety CI:
+Set in local `.env.local` or CI secrets:
 
 ```bash
 PLAYWRIGHT_BASE_URL=https://<preview-or-staging-url>
@@ -16,24 +18,45 @@ E2E_COACH_EMAIL=<test-coach-email>
 E2E_COACH_PASSWORD=<test-coach-password>
 ```
 
-Uwagi:
-- `PLAYWRIGHT_BASE_URL` wskazuje środowisko preview/staging.
-- Jeśli `PLAYWRIGHT_BASE_URL` nie jest ustawione, Playwright użyje domyślnie `http://localhost:3000` (z `playwright.config.ts`).
+Optional:
 
-## Uruchomienie lokalne
+```bash
+E2E_ALLOW_AI_CALL=1
+```
+
+`E2E_ALLOW_AI_CALL=1` enables the live Anthropic happy-path test in `US-005.spec.ts`.
+
+## Skip Rules
+
+- Without `E2E_COACH_EMAIL` + `E2E_COACH_PASSWORD`, authenticated scenarios are skipped by design.
+- Without `E2E_ALLOW_AI_CALL=1`, the live AI happy path stays skipped by design.
+
+## Local Run
 
 ```bash
 npm run test:e2e
 ```
 
-## Uruchomienie w CI
+PowerShell example:
 
-1. Ustaw sekrety: `PLAYWRIGHT_BASE_URL`, `E2E_COACH_EMAIL`, `E2E_COACH_PASSWORD`.
-2. Uruchom `npm run test:e2e`.
-3. W CI brak `E2E_COACH_*` powinien failować job (intencjonalnie).
+```powershell
+$env:PLAYWRIGHT_BASE_URL = "https://<deployment>.vercel.app"
+$env:E2E_COACH_EMAIL = "coach@example.com"
+$env:E2E_COACH_PASSWORD = "<password>"
+npm run test:e2e
+```
 
-## Stabilność testów
+## CI Run
 
-- Test CRUD tworzy unikalnego zawodnika (`Date.now() + random`).
-- Test czyści dane w `finally` (DELETE), żeby nie zostawiać śmieci.
-- Suite działa w trybie `serial`, aby ograniczyć flaki przy współdzielonym koncie testowym.
+1. Add secrets:
+   - `PLAYWRIGHT_BASE_URL`
+   - `E2E_COACH_EMAIL`
+   - `E2E_COACH_PASSWORD`
+2. Run `npm run test:e2e`.
+3. Keep traces/screenshots/videos only for failures (configured in Playwright).
+
+## Latest Snapshot (2026-04-15)
+
+- Preview on PR #6 is healthy (`/` and `/login` return 200).
+- Full authenticated flows are still blocked by missing coach credentials in the local environment.
+- Unauthenticated US-004 invalid-code checks pass on desktop and mobile.

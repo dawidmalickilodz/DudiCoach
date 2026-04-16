@@ -59,3 +59,7 @@ supabase/.temp
 !.vscode/settings.json
 !.vscode/extensions.json
 .idea
+.claude/
+
+# local e2e credentials
+.e2e-creds.json

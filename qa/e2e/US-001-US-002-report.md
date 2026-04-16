@@ -2,58 +2,41 @@
 story_group: US-001-US-002
 agent: qa-test
 stage: e2e
-verdict: blocked-missing-credentials
-date: 2026-04-14
+verdict: pass-preview
+date: 2026-04-16
 ---
 
-# E2E Report - US-001 + US-002 (High-priority Fix Pack)
+# E2E Report - US-001 + US-002
 
-## Current Status
+## Summary
 
-E2E suite is wired correctly and runs against Preview.
-Full auth + CRUD verification is currently blocked by missing test coach credentials.
+US-001 (auth flow) and US-002 (API CRUD) are passing end-to-end against PR #6 preview using real credentials (`E2E_COACH_EMAIL` + `E2E_COACH_PASSWORD`).
 
-## Environment Check
+## Execution
 
-- `PLAYWRIGHT_BASE_URL`: provided for verification run
-- `E2E_COACH_EMAIL`: missing
-- `E2E_COACH_PASSWORD`: missing
-
-## Executions
-
-1. Local run without `PLAYWRIGHT_BASE_URL`:
-   - Command: `npm run test:e2e`
-   - Result: failed before tests
-   - Reason: Playwright started local `next dev`; app failed because Supabase URL/key env vars were not set.
-
-2. Preview run with `PLAYWRIGHT_BASE_URL`:
-   - Command: `PLAYWRIGHT_BASE_URL=https://dudi-coach-7qtwjevpw-dawidmalickilodz-7164s-projects.vercel.app npm run test:e2e`
-   - Result: process succeeded, **10 tests skipped**
-   - Reason: suite intentionally skips authenticated scenarios when coach credentials are not set.
-
-## Planned Coverage (when credentials are available)
-
-- US-001:
-  - protected `/dashboard` redirect
-  - invalid login remains on `/login` and clears password
-  - successful login redirect to dashboard
-  - logout redirect to `/login`
-- US-002:
-  - authenticated API CRUD (`POST/GET/PATCH/DELETE`)
-  - cleanup in `finally`
-
-## Remaining Step to Unblock
-
-Set these secrets (locally or CI) and rerun:
-
-- `E2E_COACH_EMAIL`
-- `E2E_COACH_PASSWORD`
-
-Then execute:
+- Command:
 
 ```bash
-npm run test:e2e
+PLAYWRIGHT_BASE_URL="https://dudi-coach-git-codex-us-afb073-dawidmalickilodz-7164s-projects.vercel.app" \
+E2E_COACH_EMAIL="***" \
+E2E_COACH_PASSWORD="***" \
+npx playwright test --reporter=list
 ```
 
-Detailed setup: `qa/e2e/US-001-US-002-runbook.md`.
+- Result:
+  - `22 passed`
+  - `2 skipped` (US-005 AI opt-in path only)
+  - `0 failed`
 
+## Covered in this run
+
+- US-001:
+  - `/dashboard` protection for unauthenticated users
+  - invalid login stays on `/login` and clears password
+  - successful login redirects to `/dashboard`
+  - logout redirects to `/login`
+- US-002:
+  - authenticated API CRUD (`POST / GET-list / PATCH / GET-single / DELETE / GET-after-delete`)
+  - cleanup in `finally`
+
+Runbook: `qa/e2e/US-001-US-002-runbook.md`

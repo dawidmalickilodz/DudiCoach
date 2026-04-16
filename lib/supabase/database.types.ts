@@ -29,6 +29,7 @@ export type Database = {
           name: string
           notes: string | null
           session_minutes: number | null
+          share_active: boolean
           share_code: string
           sport: string | null
           training_days_per_week: number | null
@@ -47,6 +48,7 @@ export type Database = {
           name: string
           notes?: string | null
           session_minutes?: number | null
+          share_active?: boolean
           share_code?: string
           sport?: string | null
           training_days_per_week?: number | null
@@ -65,6 +67,7 @@ export type Database = {
           name?: string
           notes?: string | null
           session_minutes?: number | null
+          share_active?: boolean
           share_code?: string
           sport?: string | null
           training_days_per_week?: number | null
@@ -95,12 +98,70 @@ export type Database = {
         }
         Relationships: []
       }
+      training_plans: {
+        Row: {
+          athlete_id: string
+          created_at: string
+          id: string
+          phase: string | null
+          plan_json: Json
+          plan_name: string
+        }
+        Insert: {
+          athlete_id: string
+          created_at?: string
+          id?: string
+          phase?: string | null
+          plan_json: Json
+          plan_name: string
+        }
+        Update: {
+          athlete_id?: string
+          created_at?: string
+          id?: string
+          phase?: string | null
+          plan_json?: Json
+          plan_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_plans_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       generate_share_code: { Args: never; Returns: string }
+      get_athlete_by_share_code: {
+        Args: { p_code: string }
+        Returns: {
+          id: string
+          name: string
+          age: number | null
+          weight_kg: number | null
+          height_cm: number | null
+          sport: string | null
+          training_start_date: string | null
+          training_days_per_week: number | null
+          session_minutes: number | null
+          current_phase: string | null
+          goal: string | null
+          notes: string | null
+          share_code: string
+          updated_at: string
+        }[]
+      }
+      reset_share_code: {
+        Args: { p_athlete_id: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
