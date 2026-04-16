@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter } from "next/navigation";
 
@@ -21,7 +21,7 @@ export default function AthleteCard({ athlete }: AthleteCardProps) {
       : athlete.sport;
 
   function handleClick() {
-    router.push(`/coach/athletes/${athlete.id}`);
+    router.push(`/athletes/${athlete.id}`);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -68,3 +68,4 @@ export default function AthleteCard({ athlete }: AthleteCardProps) {
     </div>
   );
 }
+

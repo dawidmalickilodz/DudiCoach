@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { pl } from "@/lib/i18n/pl";
@@ -25,8 +26,26 @@ interface OnlineTabProps {
  */
 export default function OnlineTab({ athlete }: OnlineTabProps) {
   const queryClient = useQueryClient();
+  const [localShareState, setLocalShareState] = useState(() => ({
+    athleteId: athlete.id,
+    shareActive: athlete.share_active,
+    shareCode: athlete.share_code,
+  }));
 
-  function onMutationSuccess() {
+  const isLocalStateCurrent = localShareState.athleteId === athlete.id;
+  const shareActive = isLocalStateCurrent
+    ? localShareState.shareActive
+    : athlete.share_active;
+  const shareCode = isLocalStateCurrent
+    ? localShareState.shareCode
+    : athlete.share_code;
+
+  function onMutationSuccess(data: { share_active: boolean; share_code: string }) {
+    setLocalShareState({
+      athleteId: athlete.id,
+      shareActive: data.share_active,
+      shareCode: data.share_code,
+    });
     void queryClient.invalidateQueries({
       queryKey: athleteKeys.detail(athlete.id),
     });
@@ -63,7 +82,7 @@ export default function OnlineTab({ athlete }: OnlineTabProps) {
 
   return (
     <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-card)] p-6">
-      {!athlete.share_active ? (
+      {!shareActive ? (
         /* State A: sharing inactive */
         <div className="space-y-4">
           <div>
@@ -94,7 +113,7 @@ export default function OnlineTab({ athlete }: OnlineTabProps) {
             <p className="text-sm font-medium text-[var(--color-muted-foreground)]">
               {pl.coach.athlete.online.accessCodeLabel}
             </p>
-            <ShareCodeDisplay code={athlete.share_code} />
+            <ShareCodeDisplay code={shareCode} />
           </div>
 
           {/* Share link */}
@@ -102,7 +121,7 @@ export default function OnlineTab({ athlete }: OnlineTabProps) {
             <p className="text-sm font-medium text-[var(--color-muted-foreground)]">
               {pl.coach.athlete.online.accessLinkLabel}
             </p>
-            <ShareLink shareCode={athlete.share_code} />
+            <ShareLink shareCode={shareCode} />
           </div>
 
           {/* Action buttons */}

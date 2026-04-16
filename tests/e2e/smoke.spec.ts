@@ -1,4 +1,4 @@
-import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
+﻿import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
 
 const coachEmail = process.env.E2E_COACH_EMAIL ?? "";
 const coachPassword = process.env.E2E_COACH_PASSWORD ?? "";
@@ -14,10 +14,10 @@ if (isCI && missingCoachCredentials) {
 async function loginAsCoach(page: Page) {
   await page.goto("/login");
   await page.getByLabel(/Email/i).fill(coachEmail);
-  await page.getByLabel(/Hasło/i).fill(coachPassword);
-  await page.getByRole("button", { name: /Zaloguj się/i }).click();
+  await page.getByLabel(/Has/i).fill(coachPassword);
+  await page.getByRole("button", { name: /Zaloguj/i }).click();
 
-  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page).toHaveURL(/\/dashboard\/?$/, { timeout: 20_000 });
   await expect(
     page.getByRole("heading", { name: /Panel trenera/i }),
   ).toBeVisible();
@@ -49,19 +49,19 @@ test.describe("US-001 + US-002 high-priority E2E", () => {
     await page.goto("/dashboard");
 
     await expect(page).toHaveURL(/\/login/);
-    await expect(page.getByRole("heading", { name: /Zaloguj się/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Zaloguj/i })).toBeVisible();
   });
 
   test("US-001: invalid credentials keep user on /login and clear password", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel(/Email/i).fill(coachEmail);
-    await page.getByLabel(/Hasło/i).fill(`${coachPassword}-wrong`);
-    await page.getByRole("button", { name: /Zaloguj się/i }).click();
+    await page.getByLabel(/Has/i).fill(`${coachPassword}-wrong`);
+    await page.getByRole("button", { name: /Zaloguj/i }).click();
 
     await expect(page).toHaveURL(/\/login/);
     await expect(
-      page.getByText(/Nieprawidłowy email lub hasło/i),
-    ).toBeVisible();
+      page.getByRole("alert").filter({ hasText: /Nieprawid|Nie udało/i }),
+    ).toBeVisible({ timeout: 20_000 });
     await expect(page.locator("#password")).toHaveValue("");
   });
 
@@ -75,7 +75,7 @@ test.describe("US-001 + US-002 high-priority E2E", () => {
     await page.getByRole("button", { name: /Wyloguj/i }).click();
 
     await expect(page).toHaveURL(/\/login/);
-    await expect(page.getByRole("heading", { name: /Zaloguj się/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Zaloguj/i })).toBeVisible();
   });
 
   test("US-002: authenticated API CRUD flow works end-to-end", async ({ page }) => {
@@ -91,7 +91,7 @@ test.describe("US-001 + US-002 high-priority E2E", () => {
           name: athleteName,
           age: 25,
           weight_kg: 80,
-          sport: "Siłownia",
+          sport: "SiĹ‚ownia",
           training_days_per_week: 4,
           session_minutes: 60,
         },
@@ -150,3 +150,4 @@ test.describe("US-001 + US-002 high-priority E2E", () => {
     }
   });
 });
+

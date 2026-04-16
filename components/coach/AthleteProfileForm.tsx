@@ -105,7 +105,9 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
           <select
             id="sport"
             className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm"
-            {...register("sport")}
+            {...register("sport", {
+              setValueAs: (value) => (value === "" ? undefined : value),
+            })}
           >
             <option value="">—</option>
             {SPORTS.map((s) => (
@@ -129,7 +131,7 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
             min={10}
             max={100}
             className="border-border bg-input text-foreground rounded-input w-24 border px-3 py-2 text-sm"
-            {...register("age", { valueAsNumber: true })}
+            {...register("age", { setValueAs: toOptionalNumber })}
           />
         </FormField>
 
@@ -147,7 +149,7 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
             max={250}
             step={0.1}
             className="border-border bg-input text-foreground rounded-input w-24 border px-3 py-2 text-sm"
-            {...register("weight_kg", { valueAsNumber: true })}
+            {...register("weight_kg", { setValueAs: toOptionalNumber })}
           />
         </FormField>
 
@@ -164,7 +166,7 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
             min={100}
             max={250}
             className="border-border bg-input text-foreground rounded-input w-24 border px-3 py-2 text-sm"
-            {...register("height_cm", { valueAsNumber: true })}
+            {...register("height_cm", { setValueAs: toOptionalNumber })}
           />
         </FormField>
 
@@ -198,7 +200,7 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
             min={1}
             max={7}
             className="border-border bg-input text-foreground rounded-input w-24 border px-3 py-2 text-sm"
-            {...register("training_days_per_week", { valueAsNumber: true })}
+            {...register("training_days_per_week", { setValueAs: toOptionalNumber })}
           />
         </FormField>
 
@@ -215,7 +217,7 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
             min={20}
             max={180}
             className="border-border bg-input text-foreground rounded-input w-24 border px-3 py-2 text-sm"
-            {...register("session_minutes", { valueAsNumber: true })}
+            {...register("session_minutes", { setValueAs: toOptionalNumber })}
           />
         </FormField>
 
@@ -228,7 +230,9 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
           <select
             id="current_phase"
             className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm"
-            {...register("current_phase")}
+            {...register("current_phase", {
+              setValueAs: (value) => (value === "" ? undefined : value),
+            })}
           >
             <option value="">—</option>
             {CURRENT_PHASES.map((phase) => (
@@ -289,6 +293,12 @@ function buildDefaultValues(athlete: Athlete): UpdateAthleteInput {
     goal: athlete.goal ?? undefined,
     notes: athlete.notes ?? undefined,
   };
+}
+
+function toOptionalNumber(value: unknown): number | undefined {
+  if (value === "" || value === null || value === undefined) return undefined;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 // ---------------------------------------------------------------------------

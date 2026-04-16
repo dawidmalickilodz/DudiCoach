@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -22,7 +22,7 @@ interface CreateAthleteDialogProps {
 
 /**
  * Modal dialog for creating a new athlete.
- * Only asks for name — coach completes the profile in the editor.
+ * Only asks for name â€” coach completes the profile in the editor.
  * This is the one exception to "no Save buttons" (creation requires explicit action).
  */
 export default function CreateAthleteDialog({
@@ -87,7 +87,7 @@ export default function CreateAthleteDialog({
     try {
       const athlete = await createMutation.mutateAsync({ name: data.name });
       handleClose();
-      router.push(`/coach/athletes/${athlete.id}`);
+      router.push(`/athletes/${athlete.id}`);
     } catch {
       setError("root", {
         message: pl.coach.athlete.createDialog.errorGeneric,
@@ -177,3 +177,4 @@ export default function CreateAthleteDialog({
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-/// <reference types="vitest/globals" />
+﻿/// <reference types="vitest/globals" />
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -7,7 +7,7 @@ import { pl } from "@/lib/i18n/pl";
 import type { Athlete } from "@/lib/api/athletes";
 
 // ---------------------------------------------------------------------------
-// Mock next/navigation — useRouter
+// Mock next/navigation â€” useRouter
 // ---------------------------------------------------------------------------
 
 const mockPush = vi.fn();
@@ -39,7 +39,7 @@ function makeAthlete(overrides: Partial<Athlete> = {}): Athlete {
     training_days_per_week: 5,
     session_minutes: 90,
     current_phase: "base",
-    goal: "Zwiększenie wydolności",
+    goal: "ZwiÄ™kszenie wydolnoĹ›ci",
     notes: null,
     share_code: "ABC123",
     share_active: false,
@@ -81,7 +81,7 @@ describe("AthleteCard", () => {
 
   it("renders the sport label in Polish from pl.ts", () => {
     render(<AthleteCard athlete={makeAthlete({ sport: "pilka_nozna" })} />);
-    // Polish label for pilka_nozna is "Piłka nożna"
+    // Polish label for pilka_nozna is "PiĹ‚ka noĹĽna"
     expect(
       screen.getByText(`${pl.coach.athlete.profile.sport}: ${pl.coach.athlete.sport.pilka_nozna}`),
     ).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe("AthleteCard", () => {
     d.setMonth(d.getMonth() - 10);
     const startDate = d.toISOString().slice(0, 10);
     render(<AthleteCard athlete={makeAthlete({ training_start_date: startDate })} />);
-    // 10 months → intermediate
+    // 10 months â†’ intermediate
     expect(screen.getByText(pl.coach.athlete.level.intermediate)).toBeInTheDocument();
   });
 
@@ -140,23 +140,23 @@ describe("AthleteCard", () => {
 
   // ---- click navigation ----------------------------------------------------
 
-  it("navigates to /coach/athletes/<id> when clicked", () => {
+  it("navigates to /athletes/<id> when clicked", () => {
     render(<AthleteCard athlete={makeAthlete({ id: "athlete-uuid-001" })} />);
     fireEvent.click(screen.getByRole("button"));
-    expect(mockPush).toHaveBeenCalledWith("/coach/athletes/athlete-uuid-001");
+    expect(mockPush).toHaveBeenCalledWith("/athletes/athlete-uuid-001");
     expect(mockPush).toHaveBeenCalledTimes(1);
   });
 
   it("navigates on Enter keydown", () => {
     render(<AthleteCard athlete={makeAthlete({ id: "athlete-uuid-001" })} />);
     fireEvent.keyDown(screen.getByRole("button"), { key: "Enter" });
-    expect(mockPush).toHaveBeenCalledWith("/coach/athletes/athlete-uuid-001");
+    expect(mockPush).toHaveBeenCalledWith("/athletes/athlete-uuid-001");
   });
 
   it("navigates on Space keydown", () => {
     render(<AthleteCard athlete={makeAthlete({ id: "athlete-uuid-001" })} />);
     fireEvent.keyDown(screen.getByRole("button"), { key: " " });
-    expect(mockPush).toHaveBeenCalledWith("/coach/athletes/athlete-uuid-001");
+    expect(mockPush).toHaveBeenCalledWith("/athletes/athlete-uuid-001");
   });
 
   it("does NOT navigate on other keydown (e.g., Tab)", () => {
@@ -172,3 +172,4 @@ describe("AthleteCard", () => {
     expect(screen.getByRole("button").className).toContain("cursor-pointer");
   });
 });
+

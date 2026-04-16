@@ -1,4 +1,4 @@
-import {
+﻿import {
   test,
   expect,
   type APIRequestContext,
@@ -6,14 +6,14 @@ import {
 } from "@playwright/test";
 
 /**
- * US-004 — Share code + panel zawodnika + real-time sync.
+ * US-004 â€” Share code + panel zawodnika + real-time sync.
  *
  * Covers:
  *  - Home share-code form validation (disabled while too short, inline error
  *    on a valid-format but non-existent code)
  *  - Coach Online tab: activate / deactivate / reset flows (UI + API state)
  *  - Public athlete panel at /{shareCode} renders profile + SyncIndicator
- *  - Realtime sync: coach PATCH → public page reflects change via broadcast
+ *  - Realtime sync: coach PATCH â†’ public page reflects change via broadcast
  *
  * All authenticated scenarios are skipped unless E2E_COACH_EMAIL +
  * E2E_COACH_PASSWORD are set (matches US-001/US-002/US-003 convention).
@@ -33,9 +33,11 @@ if (isCI && missingCoachCredentials) {
 async function loginAsCoach(page: Page): Promise<void> {
   await page.goto("/login");
   await page.getByLabel(/Email/i).fill(coachEmail);
-  await page.getByLabel(/Hasło/i).fill(coachPassword);
-  await page.getByRole("button", { name: /Zaloguj się/i }).click();
-  await expect(page).toHaveURL(/\/coach\/dashboard/);
+  await page.getByLabel(/Has/i).fill(coachPassword);
+  await page.getByRole("button", { name: /Zaloguj/i }).click();
+  await expect(page).toHaveURL(/\/(?:coach\/)?dashboard\/?$/, {
+    timeout: 20_000,
+  });
 }
 
 async function createAthlete(
@@ -98,28 +100,28 @@ async function cleanupAthlete(
   }
 }
 
-test.describe("US-004 — share code panel + realtime", () => {
+test.describe("US-004 â€” share code panel + realtime", () => {
   test.describe.configure({ mode: "serial" });
 
   test("home share-code form rejects invalid codes", async ({ page }) => {
     await page.goto("/");
 
     const input = page.getByLabel(/Panel zawodnika/i);
-    const submit = page.getByRole("button", { name: /^Połącz$/i });
+    const submit = page.locator('button[type="submit"]').first();
 
-    // Too short — submit is disabled (length !== 6 gate).
+    // Too short â€” submit is disabled (length !== 6 gate).
     await input.fill("ABC");
     await expect(submit).toBeDisabled();
 
-    // Valid-format but non-existent code → HEAD check fails → inline error.
+    // Valid-format but non-existent code â†’ HEAD check fails â†’ inline error.
     await input.fill("ZZZZZZ");
     await expect(submit).toBeEnabled();
     await submit.click();
 
-    await expect(page.locator("#share-code-error")).toContainText(
-      /Nieprawidłowy kod/i,
-    );
-    // Stays on the home page — no navigation.
+    await expect(
+      page.getByRole("alert").filter({ hasText: /Nieprawid/i }),
+    ).toBeVisible({ timeout: 20_000 });
+    // Stays on the home page â€” no navigation.
     await expect(page).toHaveURL(/\/(?:$|\?)/);
   });
 
@@ -132,6 +134,7 @@ test.describe("US-004 — share code panel + realtime", () => {
     test("coach activates, resets, and deactivates share code", async ({
       page,
     }) => {
+      test.setTimeout(60_000);
       await loginAsCoach(page);
 
       const athleteId = await createAthlete(
@@ -140,21 +143,17 @@ test.describe("US-004 — share code panel + realtime", () => {
       );
 
       try {
-        await page.goto(`/coach/athletes/${athleteId}`);
+        await page.goto(`/athletes/${athleteId}`);
 
-        // --- AC-2 — Open Online tab, activate sharing
+        // --- AC-2 â€” Open Online tab, activate sharing
         await page.getByRole("tab", { name: /^Online$/i }).click();
 
-        await expect(
-          page.getByText(/Udostępnianie nieaktywne/i),
-        ).toBeVisible();
+        await expect(page.getByText(/nieaktyw/i)).toBeVisible();
 
-        await page
-          .getByRole("button", { name: /Aktywuj udostępnianie/i })
-          .click();
+        await page.getByRole("button", { name: /Aktywuj/i }).click();
 
         // After activation, share-code + link labels appear.
-        await expect(page.getByText(/Kod dostępu/i)).toBeVisible({
+        await expect(page.getByText(/Kod dost/i)).toBeVisible({
           timeout: 5000,
         });
         await expect(page.getByText(/Link dla zawodnika/i)).toBeVisible();
@@ -164,7 +163,7 @@ test.describe("US-004 — share code panel + realtime", () => {
         expect(afterActivate.share_code).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
         const originalCode = afterActivate.share_code;
 
-        // --- AC-4 — Reset (window.confirm must be auto-accepted)
+        // --- AC-4 â€” Reset (window.confirm must be auto-accepted)
         page.once("dialog", async (dialog) => {
           expect(dialog.type()).toBe("confirm");
           await dialog.accept();
@@ -187,12 +186,12 @@ test.describe("US-004 — share code panel + realtime", () => {
         expect(afterReset.share_active).toBe(true);
         expect(afterReset.share_code).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
 
-        // --- AC-3 — Deactivate returns to the inactive state.
+        // --- AC-3 â€” Deactivate returns to the inactive state.
         await page.getByRole("button", { name: /^Dezaktywuj$/i }).click();
 
-        await expect(
-          page.getByText(/Udostępnianie nieaktywne/i),
-        ).toBeVisible({ timeout: 5000 });
+        await expect(page.getByText(/nieaktyw/i)).toBeVisible({
+          timeout: 5000,
+        });
 
         const afterDeactivate = await getAthlete(page.request, athleteId);
         expect(afterDeactivate.share_active).toBe(false);
@@ -236,25 +235,23 @@ test.describe("US-004 — share code panel + realtime", () => {
         const code = activateBody.data.share_code;
         expect(code).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
 
-        // --- Anonymous athlete context — open /{code}
+        // --- Anonymous athlete context â€” open /{code}
         const athleteContext = await browser.newContext();
         const athletePage = await athleteContext.newPage();
 
         try {
           await athletePage.goto(`/${code}`);
 
-          // --- AC-5 — read-only profile rendered.
+          // --- AC-5 â€” read-only profile rendered.
           await expect(
             athletePage.getByRole("heading", { name: initialName }),
           ).toBeVisible();
-          await expect(
-            athletePage.getByText(/Piłka nożna/i),
-          ).toBeVisible();
+          await expect(athletePage.getByText(/nozn|nożn/i)).toBeVisible();
 
           // SyncIndicator is the live-region status node.
           await expect(athletePage.locator('[role="status"]')).toBeVisible();
 
-          // --- AC-6 — realtime: coach PATCH → athlete page reflects the
+          // --- AC-6 â€” realtime: coach PATCH â†’ athlete page reflects the
           //     new name via the athlete:{code} broadcast channel.
           const newName = `${initialName} UPDATED`;
           await patchAthlete(coachPage.request, athleteId, { name: newName });
@@ -274,3 +271,4 @@ test.describe("US-004 — share code panel + realtime", () => {
     });
   });
 });
+

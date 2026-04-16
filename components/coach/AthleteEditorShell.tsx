@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -36,7 +36,7 @@ export default function AthleteEditorShell({ athlete }: AthleteEditorShellProps)
     <div>
       {/* Top bar: back button + athlete name */}
       <div className="mb-6 flex items-center justify-between gap-4">
-        <BackButton href="/coach/dashboard" />
+        <BackButton href="/dashboard" />
         <h1 className="text-foreground truncate text-lg font-semibold">
           {athlete.name}
         </h1>
@@ -58,3 +58,4 @@ export default function AthleteEditorShell({ athlete }: AthleteEditorShellProps)
     </div>
   );
 }
+

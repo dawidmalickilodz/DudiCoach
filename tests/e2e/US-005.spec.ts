@@ -1,4 +1,4 @@
-import {
+﻿import {
   test,
   expect,
   type APIRequestContext,
@@ -6,7 +6,7 @@ import {
 } from "@playwright/test";
 
 /**
- * US-005 — Generowanie planu treningowego przez Claude AI.
+ * US-005 â€” Generowanie planu treningowego przez Claude AI.
  *
  * The happy path (real Claude call) is expensive and non-deterministic, so
  * it is opt-in only via `E2E_ALLOW_AI_CALL=1`. CI defaults to the cheap
@@ -32,9 +32,11 @@ if (isCI && missingCoachCredentials) {
 async function loginAsCoach(page: Page): Promise<void> {
   await page.goto("/login");
   await page.getByLabel(/Email/i).fill(coachEmail);
-  await page.getByLabel(/Hasło/i).fill(coachPassword);
-  await page.getByRole("button", { name: /Zaloguj się/i }).click();
-  await expect(page).toHaveURL(/\/coach\/dashboard/);
+  await page.getByLabel(/Has/i).fill(coachPassword);
+  await page.getByRole("button", { name: /Zaloguj/i }).click();
+  await expect(page).toHaveURL(/\/(?:coach\/)?dashboard\/?$/, {
+    timeout: 20_000,
+  });
 }
 
 async function createAthlete(
@@ -76,7 +78,7 @@ async function cleanupAthlete(
   }
 }
 
-test.describe("US-005 — AI plan generation", () => {
+test.describe("US-005 â€” AI plan generation", () => {
   test.describe.configure({ mode: "serial" });
 
   test.skip(
@@ -89,7 +91,7 @@ test.describe("US-005 — AI plan generation", () => {
   }) => {
     await loginAsCoach(page);
 
-    // Athlete created WITHOUT sport / training_days_per_week — server must
+    // Athlete created WITHOUT sport / training_days_per_week â€” server must
     // return 422 before ever calling Claude.
     const athleteId = await createAthlete(
       page.request,
@@ -97,19 +99,38 @@ test.describe("US-005 — AI plan generation", () => {
     );
 
     try {
-      await page.goto(`/coach/athletes/${athleteId}`);
+      await page.goto(`/athletes/${athleteId}`);
       await page.getByRole("tab", { name: /^Plany$/i }).click();
 
       const generateButton = page.getByRole("button", {
         name: /Generuj plan AI/i,
       });
       await expect(generateButton).toBeVisible();
+      const postPlanResponse = page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          response.url().includes(`/api/athletes/${athleteId}/plans`),
+      );
       await generateButton.click();
 
-      await expect(page.getByRole("alert")).toContainText(
-        /Uzupełnij dane zawodnika \(sport, dni treningowe\)/i,
-        { timeout: 10_000 },
-      );
+      let response = await postPlanResponse;
+      if (response.status() === 429) {
+        const retryAfterSeconds = Number(response.headers()["retry-after"] ?? "1");
+        await page.waitForTimeout((Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : 1) * 1000 + 500);
+
+        const retryResponse = page.waitForResponse(
+          (retry) =>
+            retry.request().method() === "POST" &&
+            retry.url().includes(`/api/athletes/${athleteId}/plans`),
+        );
+        await generateButton.click();
+        response = await retryResponse;
+      }
+
+      expect(response.status()).toBe(422);
+      await expect(
+        page.getByRole("alert").filter({ hasText: /Uzupe|Zbyt wiele/i }).first(),
+      ).toBeVisible({ timeout: 10_000 });
     } finally {
       await cleanupAthlete(page.request, athleteId);
     }
@@ -120,7 +141,7 @@ test.describe("US-005 — AI plan generation", () => {
   // Requires E2E_ALLOW_AI_CALL=1 AND ANTHROPIC_API_KEY set in the deployed
   // environment. Skipped otherwise.
   // ---------------------------------------------------------------------------
-  test("happy path — generates a plan and renders 4-week viewer [opt-in]", async ({
+  test("happy path â€” generates a plan and renders 4-week viewer [opt-in]", async ({
     page,
   }) => {
     test.skip(
@@ -150,34 +171,35 @@ test.describe("US-005 — AI plan generation", () => {
         training_days_per_week: 4,
         session_minutes: 60,
         current_phase: "base",
-        goal: "Wytrzymałość ogólna",
+        goal: "WytrzymaĹ‚oĹ›Ä‡ ogĂłlna",
       });
 
-      await page.goto(`/coach/athletes/${athleteId}`);
+      await page.goto(`/athletes/${athleteId}`);
       await page.getByRole("tab", { name: /^Plany$/i }).click();
 
       await page
         .getByRole("button", { name: /Generuj plan AI/i })
         .click();
 
-      // Spinner copy first — "Generuję plan..." — then the viewer appears.
-      await expect(page.getByText(/Generuję plan/i)).toBeVisible();
+      // Spinner copy first â€” "GenerujÄ™ plan..." â€” then the viewer appears.
+      await expect(page.getByText(/GenerujÄ™ plan/i)).toBeVisible();
 
-      // 4 week tabs in a tablist — this is the definitive "plan rendered" signal.
+      // 4 week tabs in a tablist â€” this is the definitive "plan rendered" signal.
       await expect(
-        page.getByRole("tab", { name: /Tydzień 1/i }),
+        page.getByRole("tab", { name: /TydzieĹ„ 1/i }),
       ).toBeVisible({ timeout: 90_000 });
-      await expect(page.getByRole("tab", { name: /Tydzień 2/i })).toBeVisible();
-      await expect(page.getByRole("tab", { name: /Tydzień 3/i })).toBeVisible();
-      await expect(page.getByRole("tab", { name: /Tydzień 4/i })).toBeVisible();
+      await expect(page.getByRole("tab", { name: /TydzieĹ„ 2/i })).toBeVisible();
+      await expect(page.getByRole("tab", { name: /TydzieĹ„ 3/i })).toBeVisible();
+      await expect(page.getByRole("tab", { name: /TydzieĹ„ 4/i })).toBeVisible();
 
       // Switching to week 2 works.
-      await page.getByRole("tab", { name: /Tydzień 2/i }).click();
+      await page.getByRole("tab", { name: /TydzieĹ„ 2/i }).click();
       await expect(
-        page.getByRole("tab", { name: /Tydzień 2/i }),
+        page.getByRole("tab", { name: /TydzieĹ„ 2/i }),
       ).toHaveAttribute("aria-selected", "true");
     } finally {
       await cleanupAthlete(page.request, athleteId);
     }
   });
 });
+

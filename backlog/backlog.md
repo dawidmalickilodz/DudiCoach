@@ -1,7 +1,7 @@
 # Training Planner AI - Backlog
 
 **Owner**: backlog-manager agent
-**Last updated**: 2026-04-15
+**Last updated**: 2026-04-16
 **Sprint**: Sprint 1 (Foundation + First Vertical Slice)
 
 ## Status Legend
@@ -22,16 +22,21 @@
 
 | ID | Title | Epic | Priority | Estimate | Status | Notes |
 |---|---|---|---|---|---|---|
-| US-001 | Logowanie trenera do panelu | EPIC-A | P0 | S | InE2E | Review Approve 2026-04-10 (reviews/US-001-review.md) - awaiting E2E auth secrets |
-| US-002 | Backend CRUD zawodnika | EPIC-A | P0 | M | InE2E | Review Approve 2026-04-10 (reviews/US-002-review.md) - awaiting E2E auth secrets |
-| US-003 | Frontend lista + edycja zawodnika z auto-save | EPIC-A | P0 | M | InE2E | Review Approve 2026-04-15 (reviews/US-003-review.md) - awaiting E2E auth secrets |
-| US-004 | Share code + panel zawodnika + real-time | EPIC-C | P0 | L | InE2E | Review Approve 2026-04-15 (reviews/US-004-review.md) - awaiting E2E auth secrets |
-| US-005 | Generowanie planu AI przez Claude | EPIC-B | P0 | L | InE2E | Review Approve 2026-04-15 (reviews/US-005-review.md) - awaiting E2E auth secrets |
+| US-001 | Logowanie trenera do panelu | EPIC-A | P0 | S | InE2E | Review Approve 2026-04-10 (reviews/US-001-review.md); E2E local pass 2026-04-16, preview/CI secrets pending |
+| US-002 | Backend CRUD zawodnika | EPIC-A | P0 | M | InE2E | Review Approve 2026-04-10 (reviews/US-002-review.md); E2E local pass 2026-04-16, preview/CI secrets pending |
+| US-003 | Frontend lista + edycja zawodnika z auto-save | EPIC-A | P0 | M | InE2E | Review Approve 2026-04-15 (reviews/US-003-review.md); E2E local pass 2026-04-16, preview/CI secrets pending |
+| US-004 | Share code + panel zawodnika + real-time | EPIC-C | P0 | L | InE2E | Review Approve 2026-04-15 (reviews/US-004-review.md); E2E local pass 2026-04-16, preview/CI secrets pending |
+| US-005 | Generowanie planu AI przez Claude | EPIC-B | P0 | L | InE2E | Review Approve 2026-04-15 (reviews/US-005-review.md); E2E local pass 2026-04-16, preview/CI secrets pending |
 
 ## Operational Notes (2026-04-15)
 
 - PR #5 (hotfix) is merged to `main` as `6762f5c`; production `/` and `/login` now return 200.
 - PR #6 (draft): US-003/US-004/US-005 bundle is open with working preview and updated E2E specs.
+
+## Operational Notes (2026-04-16)
+
+- Full E2E suite executed locally with auth credentials: `22 passed`, `2 skipped` (US-005 AI opt-in), `0 failed`.
+- US-003 auto-save race in E2E was stabilized by waiting for persisted API snapshot before back navigation.
 
 ## Backlog - v1.1 (post-MVP)
 

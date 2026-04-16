@@ -2,48 +2,50 @@
 story_group: US-003-US-005
 agent: qa-test
 stage: e2e
-verdict: partial-pass
-date: 2026-04-15
+verdict: pass-local
+date: 2026-04-16
 ---
 
 # E2E Report - US-003 + US-004 + US-005
 
 ## Summary
 
-Preview verification was executed against PR #6 preview deployment.
+US-003, US-004 and US-005 (non-AI path) are passing end-to-end locally on desktop and mobile projects.
 
-- Passed now: unauthenticated US-004 invalid share-code checks (desktop + mobile)
-- Skipped by design: authenticated coach scenarios (US-003, US-004 auth flows, US-005 incomplete-data/auth paths) due missing coach credentials
-- Skipped by design: US-005 live AI happy path without `E2E_ALLOW_AI_CALL=1`
-
-## Key Fix Applied During Verification
-
-A flaky selector in `tests/e2e/US-004.spec.ts` was fixed:
-- before: `page.getByRole("alert")`
-- after: `page.locator("#share-code-error")`
-
-Reason: Next.js route announcer also uses `role="alert"`, which made strict Playwright locator matching fail.
-
-## Execution Snapshot
+## Execution
 
 - Command:
 
 ```bash
-PLAYWRIGHT_BASE_URL=https://dudi-coach-git-codex-us-afb073-dawidmalickilodz-7164s-projects.vercel.app npm run test:e2e
+npm run test:e2e
 ```
 
-- Result after selector fix:
-  - `2 passed`
-  - `22 skipped`
+- Result:
+  - `22 passed`
+  - `2 skipped`
   - `0 failed`
 
-## Remaining to Reach Full Pass
+Skipped tests are expected:
+- `US-005 happy path â€” generates a plan and renders 4-week viewer [opt-in]` (desktop)
+- `US-005 happy path â€” generates a plan and renders 4-week viewer [opt-in]` (mobile)
 
-1. Set `E2E_COACH_EMAIL` and `E2E_COACH_PASSWORD`.
-2. Re-run `npm run test:e2e` to execute authenticated paths.
-3. Optionally set `E2E_ALLOW_AI_CALL=1` to exercise live AI happy path.
+These require explicit `E2E_ALLOW_AI_CALL=1` and valid AI provider key.
 
-## Deployment Notes
+## Fix verified in this run
 
-- PR #6 preview route health: `/` and `/login` return 200.
-- PR #5 hotfix is already merged to `main`; production `/` and `/login` return 200.
+US-003 flake (auto-save race) was stabilized by waiting for persisted backend values before back navigation:
+
+- file: `tests/e2e/US-003.spec.ts`
+- mechanism: polling `GET /api/athletes/:id` until expected snapshot is persisted
+
+This removed intermittent failures where form values were edited in UI but not yet committed before leaving the editor.
+
+## Preview/CI note
+
+For the same authenticated coverage on preview/CI environments, set:
+
+- `E2E_COACH_EMAIL`
+- `E2E_COACH_PASSWORD`
+
+Optional AI coverage:
+- `E2E_ALLOW_AI_CALL=1`
