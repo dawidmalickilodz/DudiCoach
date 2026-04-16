@@ -10,6 +10,7 @@ epic: EPIC-A
 design_required: false
 created: 2026-04-16
 updated: 2026-04-16
+sprint: Sprint 2
 ---
 
 # US-020 — Unauth API routes — 401 zamiast 500

@@ -9,7 +9,8 @@ dependencies: [US-003]
 epic: EPIC-A
 design_required: false
 created: 2026-04-15
-updated: 2026-04-15
+updated: 2026-04-16
+sprint: Sprint 2
 ---
 
 # US-019 — Dashboard hydration — initialData w useAthletes query

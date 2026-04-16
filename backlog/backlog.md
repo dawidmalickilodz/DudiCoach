@@ -2,7 +2,7 @@
 
 **Owner**: backlog-manager agent
 **Last updated**: 2026-04-16
-**Sprint**: Sprint 1 (Foundation + First Vertical Slice)
+**Sprint**: Sprint 2 (Hardening + Athlete Data)
 
 ## Status Legend
 
@@ -18,15 +18,24 @@
 | `Done` | Shipped |
 | `Rework` | Bounced back - needs fix |
 
-## Current Sprint - Sprint 1
+## Completed — Sprint 1 (closed 2026-04-16)
 
 | ID | Title | Epic | Priority | Estimate | Status | Notes |
 |---|---|---|---|---|---|---|
-| US-001 | Logowanie trenera do panelu | EPIC-A | P0 | S | Done | Review Approve 2026-04-10 (reviews/US-001-review.md); preview E2E pass 2026-04-16 |
-| US-002 | Backend CRUD zawodnika | EPIC-A | P0 | M | Done | Review Approve 2026-04-10 (reviews/US-002-review.md); preview E2E pass 2026-04-16 |
-| US-003 | Frontend lista + edycja zawodnika z auto-save | EPIC-A | P0 | M | Done | Review Approve 2026-04-15 (reviews/US-003-review.md); preview E2E pass 2026-04-16 |
-| US-004 | Share code + panel zawodnika + real-time | EPIC-C | P0 | L | Done | Review Approve 2026-04-15 (reviews/US-004-review.md); preview E2E pass 2026-04-16 |
-| US-005 | Generowanie planu AI przez Claude | EPIC-B | P0 | L | Done | Review Approve 2026-04-15 (reviews/US-005-review.md); preview E2E pass 2026-04-16 |
+| US-001 | Logowanie trenera do panelu | EPIC-A | P0 | S | Done | Review Approve 2026-04-10; preview E2E pass 2026-04-16 |
+| US-002 | Backend CRUD zawodnika | EPIC-A | P0 | M | Done | Review Approve 2026-04-10; preview E2E pass 2026-04-16 |
+| US-003 | Frontend lista + edycja zawodnika z auto-save | EPIC-A | P0 | M | Done | Review Approve 2026-04-15; preview E2E pass 2026-04-16 |
+| US-004 | Share code + panel zawodnika + real-time | EPIC-C | P0 | L | Done | Review Approve 2026-04-15; preview E2E pass 2026-04-16 |
+| US-005 | Generowanie planu AI przez Claude | EPIC-B | P0 | L | Done | Review Approve 2026-04-15; preview E2E pass 2026-04-16 |
+
+## Current Sprint — Sprint 2 (Hardening + Athlete Data)
+
+| ID | Title | Epic | Priority | Estimate | Status | Notes |
+|---|---|---|---|---|---|---|
+| US-020 | Unauth API routes — 401 zamiast 500 | EPIC-A | P2 | S | Draft | Hardening; znalezione post-merge Sprint 1 |
+| US-019 | Dashboard hydration - initialData w useAthletes query | EPIC-A | P2 | XS | Draft | Perf fix; znalezione w code review Sprint 1 |
+| US-011 | Kontuzje zawodnika - lista z severity | EPIC-A | P1 | M | Draft | Nowa tabela injuries + UI tab + auto-save |
+| US-012 | Testy sprawnościowe - dynamiczne per sport | EPIC-A | P1 | M | Draft | Nowa tabela fitness_test_results + katalog testów |
 
 ## Operational Notes (2026-04-15)
 
@@ -44,16 +53,16 @@
 | ID | Title | Epic | Priority | Estimate | Status |
 |---|---|---|---|---|---|
 | US-010 | Diagnostyka FMS - baza miesni + searchable dropdown | EPIC-A | P1 | XL | Draft |
-| US-011 | Kontuzje zawodnika - lista z severity | EPIC-A | P1 | M | Draft |
-| US-012 | Testy sprawnosciowe - dynamiczne per sport | EPIC-A | P1 | M | Draft |
+| ~~US-011~~ | ~~Kontuzje zawodnika~~ | — | — | — | → Sprint 2 |
+| ~~US-012~~ | ~~Testy sprawnościowe~~ | — | — | — | → Sprint 2 |
 | US-013 | Progresje obciazen - tracker z wykresem | EPIC-A | P1 | L | Draft |
 | US-014 | Checkbox done + notatki zawodnika per cwiczenie | EPIC-C | P1 | M | Draft |
 | US-015 | Historia snapshotow diagnostyki FMS | EPIC-A | P1 | M | Draft |
 | US-016 | Export planu do PDF | EPIC-B | P1 | S | Draft |
 | US-017 | Wiele planow per zawodnik z historia | EPIC-B | P1 | M | Draft |
 | US-018 | Podsumowanie cyklu (wyniki + notatki trenera) | EPIC-B | P1 | S | Draft |
-| US-019 | Dashboard hydration - initialData w useAthletes query | EPIC-A | P2 | XS | Draft |
-| US-020 | Unauth API routes — 401 zamiast 500 | EPIC-A | P2 | S | Draft |
+| ~~US-019~~ | ~~Dashboard hydration~~ | — | — | — | → Sprint 2 |
+| ~~US-020~~ | ~~Unauth API routes~~ | — | — | — | → Sprint 2 |
 
 ## Backlog - v1.2+ (nice-to-have)
 
