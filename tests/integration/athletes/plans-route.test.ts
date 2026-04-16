@@ -102,6 +102,37 @@ beforeEach(() => {
 });
 
 describe("POST /api/athletes/[id]/plans", () => {
+  it("returns 401 when unauthenticated", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
+
+    const response = await POST(
+      makeRequest() as Parameters<typeof POST>[0],
+      routeContext(ATHLETE_ID),
+    );
+    const json = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(401);
+    expect(json.error).toBe("Brak autoryzacji.");
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 when auth.getUser fails", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: null },
+      error: { message: "JWT expired", code: "401" },
+    });
+
+    const response = await POST(
+      makeRequest() as Parameters<typeof POST>[0],
+      routeContext(ATHLETE_ID),
+    );
+    const json = (await response.json()) as { error: string };
+
+    expect(response.status).toBe(401);
+    expect(json.error).toBe("Brak autoryzacji.");
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
   it("returns 500 without details for Anthropic API errors", async () => {
     const anthropicApiError = new Error("provider blew up");
     Object.setPrototypeOf(anthropicApiError, Anthropic.APIError.prototype);

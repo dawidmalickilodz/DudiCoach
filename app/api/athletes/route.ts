@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import {
   createAthleteSchema,
@@ -13,13 +14,8 @@ import {
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { user, response } = await requireAuth(supabase, "POST /api/athletes");
+  if (response) return response;
 
   let body: unknown;
   try {
@@ -64,13 +60,8 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { response } = await requireAuth(supabase, "GET /api/athletes");
+  if (response) return response;
 
   const { data, error } = await supabase
     .from("athletes")

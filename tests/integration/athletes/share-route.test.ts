@@ -51,6 +51,39 @@ beforeEach(() => {
 });
 
 describe("POST /api/athletes/[id]/share (activate/deactivate)", () => {
+  it("returns 401 when unauthenticated", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
+
+    const response = await POST(
+      makeRequest({ action: "activate" }) as Parameters<typeof POST>[0],
+      routeContext("athlete-1"),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(json.error).toBe("Brak autoryzacji.");
+    expect(mockFrom).not.toHaveBeenCalled();
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 when auth.getUser fails", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: null },
+      error: { message: "JWT expired", code: "401" },
+    });
+
+    const response = await POST(
+      makeRequest({ action: "activate" }) as Parameters<typeof POST>[0],
+      routeContext("athlete-1"),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(json.error).toBe("Brak autoryzacji.");
+    expect(mockFrom).not.toHaveBeenCalled();
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
   it("returns 404 for not-found Supabase error (PGRST116)", async () => {
     const builder = makeShareUpdateBuilder({
       data: null,

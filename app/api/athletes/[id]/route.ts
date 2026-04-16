@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 import { updateAthleteSchema } from "@/lib/validation/athlete";
 
@@ -24,14 +25,8 @@ export async function GET(
   const { id } = await params;
 
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { response } = await requireAuth(supabase, "GET /api/athletes/[id]");
+  if (response) return response;
 
   const { data, error } = await supabase
     .from("athletes")
@@ -74,14 +69,8 @@ export async function PATCH(
   const { id } = await params;
 
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { response } = await requireAuth(supabase, "PATCH /api/athletes/[id]");
+  if (response) return response;
 
   let body: unknown;
   try {
@@ -181,14 +170,8 @@ export async function DELETE(
   const { id } = await params;
 
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { response } = await requireAuth(supabase, "DELETE /api/athletes/[id]");
+  if (response) return response;
 
   // Use count to detect "not found or not owned" (RLS returns 0 rows deleted).
   const { error, count } = await supabase

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
 
 // Next.js 16: params is a Promise — must be awaited.
@@ -35,14 +36,8 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   const { id } = await params;
 
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { response } = await requireAuth(supabase, "POST /api/athletes/[id]/share");
+  if (response) return response;
 
   // --- Parse + validate body ---
   let body: unknown;

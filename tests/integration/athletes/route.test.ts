@@ -134,6 +134,13 @@ function setupUnauthenticated() {
   mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
 }
 
+function setupAuthError() {
+  mockGetUser.mockResolvedValue({
+    data: { user: null },
+    error: { message: "JWT expired", code: "401" },
+  });
+}
+
 function setupAuthenticated() {
   mockGetUser.mockResolvedValue({ data: { user: COACH_USER }, error: null });
 }
@@ -210,11 +217,24 @@ describe("POST /api/athletes", () => {
     const json = await response.json();
 
     expect(response.status).toBe(401);
-    expect(json.error).toBe("Unauthorized");
+    expect(json.error).toBe("Brak autoryzacji.");
     // Supabase from() should never be called
     expect(mockFrom).not.toHaveBeenCalled();
   });
 
+  it("auth.getUser error -> 401", async () => {
+    setupAuthError();
+
+    const req = makeRequest("http://localhost/api/athletes", "POST", {
+      name: "Jan Kowalski",
+    });
+    const response = await POST(req as Parameters<typeof POST>[0]);
+    const json = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(json.error).toBe("Brak autoryzacji.");
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
   it("Supabase error → 500", async () => {
     setupAuthenticated();
     const builder = makeBuilder({
@@ -275,7 +295,7 @@ describe("GET /api/athletes", () => {
     const json = await response.json();
 
     expect(response.status).toBe(401);
-    expect(json.error).toBe("Unauthorized");
+    expect(json.error).toBe("Brak autoryzacji.");
     expect(mockFrom).not.toHaveBeenCalled();
   });
 });
@@ -362,7 +382,7 @@ describe("GET /api/athletes/[id]", () => {
     const json = await response.json();
 
     expect(response.status).toBe(401);
-    expect(json.error).toBe("Unauthorized");
+    expect(json.error).toBe("Brak autoryzacji.");
     expect(mockFrom).not.toHaveBeenCalled();
   });
 });
@@ -473,7 +493,7 @@ describe("PATCH /api/athletes/[id]", () => {
     const json = await response.json();
 
     expect(response.status).toBe(401);
-    expect(json.error).toBe("Unauthorized");
+    expect(json.error).toBe("Brak autoryzacji.");
     expect(mockFrom).not.toHaveBeenCalled();
   });
 });
@@ -537,7 +557,7 @@ describe("DELETE /api/athletes/[id]", () => {
     const json = await response.json();
 
     expect(response.status).toBe(401);
-    expect(json.error).toBe("Unauthorized");
+    expect(json.error).toBe("Brak autoryzacji.");
     expect(mockFrom).not.toHaveBeenCalled();
   });
 });

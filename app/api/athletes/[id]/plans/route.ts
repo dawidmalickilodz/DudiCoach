@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireAuth } from "@/lib/api/auth-guard";
 import { generatePlan } from "@/lib/ai/client";
 import { parsePlanJson } from "@/lib/ai/parse-plan-json";
 import {
@@ -59,14 +60,11 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
   const { id } = await params;
 
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { user, response } = await requireAuth(
+    supabase,
+    "POST /api/athletes/[id]/plans",
+  );
+  if (response) return response;
 
   // --- Rate limit check (3 generations per minute per coach) ---
   const rl = checkRateLimit(user.id);
@@ -212,14 +210,8 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
   const { id } = await params;
 
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { response } = await requireAuth(supabase, "GET /api/athletes/[id]/plans");
+  if (response) return response;
 
   const { data, error } = await supabase
     .from("training_plans")
