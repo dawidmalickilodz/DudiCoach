@@ -29,10 +29,20 @@ import type { UpdateAthleteInput } from "@/lib/validation/athlete";
 // Queries
 // ---------------------------------------------------------------------------
 
-export function useAthletes() {
+/**
+ * Fetch the full athlete list.
+ *
+ * When `initialData` is provided (typically from the RSC dashboard page),
+ * the query is pre-populated and stays fresh for 30 s — avoiding a redundant
+ * background refetch right after hydration.  Explicit invalidation (from
+ * mutations like create/update) still overrides the stale window immediately.
+ */
+export function useAthletes(initialData?: Athlete[]) {
   return useQuery({
     queryKey: athleteKeys.list(),
     queryFn: fetchAthletes,
+    initialData,
+    staleTime: initialData ? 30_000 : 0,
   });
 }
 

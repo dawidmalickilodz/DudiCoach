@@ -4,7 +4,7 @@ title: Unauth API routes — 401 zamiast 500
 role: trener
 priority: P2
 estimate: S
-status: Draft
+status: InDevTests
 dependencies: []
 epic: EPIC-A
 design_required: false

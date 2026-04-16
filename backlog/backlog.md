@@ -32,8 +32,8 @@
 
 | ID | Title | Epic | Priority | Estimate | Status | Notes |
 |---|---|---|---|---|---|---|
-| US-020 | Unauth API routes — 401 zamiast 500 | EPIC-A | P2 | S | Draft | Hardening; znalezione post-merge Sprint 1 |
-| US-019 | Dashboard hydration - initialData w useAthletes query | EPIC-A | P2 | XS | Draft | Perf fix; znalezione w code review Sprint 1 |
+| US-020 | Unauth API routes — 401 zamiast 500 | EPIC-A | P2 | S | InDevTests | Hardening; impl 7c1e390; 194/194 tests |
+| US-019 | Dashboard hydration - initialData w useAthletes query | EPIC-A | P2 | XS | InDevTests | Perf fix; initialData + staleTime 30s; 198/198 tests |
 | US-011 | Kontuzje zawodnika - lista z severity | EPIC-A | P1 | M | Draft | Nowa tabela injuries + UI tab + auto-save |
 | US-012 | Testy sprawnościowe - dynamiczne per sport | EPIC-A | P1 | M | Draft | Nowa tabela fitness_test_results + katalog testów |
 

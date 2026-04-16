@@ -25,7 +25,7 @@ export default function DashboardContent({
 }: DashboardContentProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { data: athletes = initialAthletes, isError } = useAthletes();
+  const { data: athletes = [], isError } = useAthletes(initialAthletes);
 
   if (isError) {
     return (
