@@ -1,16 +1,20 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { pl } from "@/lib/i18n/pl";
 import { useRealtimeAthlete } from "@/lib/hooks/use-realtime-athlete";
 import type { AthletePublic } from "@/lib/types/athlete-public";
+import type { Injury } from "@/lib/api/injuries";
 import SyncIndicator from "./SyncIndicator";
 import AthleteProfileView from "./AthleteProfileView";
+import InjuriesPublicSection from "./InjuriesPublicSection";
 
 interface AthletePanelProps {
   shareCode: string;
   initialData: AthletePublic;
+  initialInjuries: Injury[];
 }
 
 /**
@@ -22,11 +26,30 @@ interface AthletePanelProps {
 export default function AthletePanel({
   shareCode,
   initialData,
+  initialInjuries,
 }: AthletePanelProps) {
   const router = useRouter();
+  const [injuries, setInjuries] = useState<Injury[]>(initialInjuries);
+
+  const refreshInjuries = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/athlete/${shareCode}/injuries`);
+      if (!response.ok) return;
+      const json = (await response.json()) as { data?: Injury[] };
+      if (Array.isArray(json.data)) {
+        setInjuries(json.data);
+      }
+    } catch {
+      // Keep current values; next realtime event or reconnect retries.
+    }
+  }, [shareCode]);
+
   const { athlete, connectionStatus } = useRealtimeAthlete({
     shareCode,
     initialData,
+    onInjuriesChanged: () => {
+      void refreshInjuries();
+    },
   });
 
   function handleDisconnect() {
@@ -43,6 +66,9 @@ export default function AthletePanel({
       </header>
 
       <AthleteProfileView athlete={athlete} />
+      <div className="mt-4">
+        <InjuriesPublicSection injuries={injuries} />
+      </div>
 
       <div className="mt-6 flex justify-center">
         <button

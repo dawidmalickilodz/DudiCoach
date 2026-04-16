@@ -6,6 +6,38 @@ import { createInjurySchema } from "@/lib/validation/injury";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+function broadcastInjuriesChanged(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  athleteId: string,
+) {
+  void (async () => {
+    try {
+      const { data: athlete, error } = await supabase
+        .from("athletes")
+        .select("share_active, share_code")
+        .eq("id", athleteId)
+        .single();
+
+      if (error || !athlete?.share_active) return;
+
+      const channel = supabase.channel(`athlete:${athlete.share_code}`);
+      await channel.send({
+        type: "broadcast",
+        event: "injuries_changed",
+        payload: {
+          athlete_id: athleteId,
+          at: new Date().toISOString(),
+        },
+      });
+      await supabase.removeChannel(channel);
+    } catch (error) {
+      console.error("[broadcastInjuriesChanged] non-fatal error", {
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  })();
+}
+
 /**
  * GET /api/athletes/[id]/injuries
  * Returns injuries for one athlete, ordered by injury_date DESC.
@@ -94,6 +126,8 @@ export async function POST(
       { status: 500 },
     );
   }
+
+  broadcastInjuriesChanged(supabase, id);
 
   return NextResponse.json({ data }, { status: 201 });
 }

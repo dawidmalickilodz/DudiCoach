@@ -20,5 +20,5 @@ export const createInjurySchema = z.object({
 
 export const updateInjurySchema = createInjurySchema.partial();
 
-export type CreateInjuryInput = z.infer<typeof createInjurySchema>;
-export type UpdateInjuryInput = z.infer<typeof updateInjurySchema>;
+export type CreateInjuryInput = z.input<typeof createInjurySchema>;
+export type UpdateInjuryInput = z.input<typeof updateInjurySchema>;

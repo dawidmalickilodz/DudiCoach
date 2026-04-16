@@ -12,7 +12,7 @@
  * See: docs/design/US-004-design.md §7
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import type { AthletePublic } from "@/lib/types/athlete-public";
@@ -22,6 +22,7 @@ export type ConnectionStatus = "connected" | "connecting" | "disconnected";
 interface UseRealtimeAthleteOptions {
   shareCode: string;
   initialData: AthletePublic;
+  onInjuriesChanged?: () => void;
 }
 
 interface UseRealtimeAthleteReturn {
@@ -32,10 +33,16 @@ interface UseRealtimeAthleteReturn {
 export function useRealtimeAthlete({
   shareCode,
   initialData,
+  onInjuriesChanged,
 }: UseRealtimeAthleteOptions): UseRealtimeAthleteReturn {
   const [athlete, setAthlete] = useState<AthletePublic>(initialData);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("connecting");
   const supabase = useMemo(() => createClient(), []);
+  const onInjuriesChangedRef = useRef(onInjuriesChanged);
+
+  useEffect(() => {
+    onInjuriesChangedRef.current = onInjuriesChanged;
+  }, [onInjuriesChanged]);
 
   // Subscribe to broadcast channel
   useEffect(() => {
@@ -45,9 +52,13 @@ export function useRealtimeAthlete({
       .on("broadcast", { event: "athlete_updated" }, (payload) => {
         setAthlete(payload.payload as AthletePublic);
       })
+      .on("broadcast", { event: "injuries_changed" }, () => {
+        onInjuriesChangedRef.current?.();
+      })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
           setConnectionStatus("connected");
+          onInjuriesChangedRef.current?.();
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
           setConnectionStatus("disconnected");
         }

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import type { AthletePublic } from "@/lib/types/athlete-public";
+import type { Injury } from "@/lib/api/injuries";
 import AthletePanel from "@/components/athlete/AthletePanel";
 
 // Next.js 16: dynamic params come as a Promise.
@@ -27,9 +28,14 @@ export default async function AthletePanelPage({ params }: PageProps) {
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase.rpc("get_athlete_by_share_code", {
-    p_code: normalized,
-  });
+  const [{ data, error }, { data: injuriesData, error: injuriesError }] = await Promise.all([
+    supabase.rpc("get_athlete_by_share_code", {
+      p_code: normalized,
+    }),
+    supabase.rpc("get_active_injuries_by_share_code", {
+      p_code: normalized,
+    }),
+  ]);
 
   if (error) {
     console.error("[AthletePanelPage] RPC error", {
@@ -43,6 +49,15 @@ export default async function AthletePanelPage({ params }: PageProps) {
   if (!row) {
     notFound();
   }
+
+  if (injuriesError) {
+    console.error("[AthletePanelPage] injuries RPC error", {
+      code: injuriesError.code,
+      message: injuriesError.message,
+    });
+  }
+
+  const initialInjuries: Injury[] = injuriesData ?? [];
 
   const initialData: AthletePublic = {
     id: row.id,
@@ -61,5 +76,11 @@ export default async function AthletePanelPage({ params }: PageProps) {
     updated_at: row.updated_at,
   };
 
-  return <AthletePanel shareCode={normalized} initialData={initialData} />;
+  return (
+    <AthletePanel
+      shareCode={normalized}
+      initialData={initialData}
+      initialInjuries={initialInjuries}
+    />
+  );
 }

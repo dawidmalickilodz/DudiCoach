@@ -12,6 +12,38 @@ function isNotFoundError(error: { code?: string } | null): boolean {
   return error?.code === NOT_FOUND_ERROR_CODE;
 }
 
+function broadcastInjuriesChanged(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  athleteId: string,
+) {
+  void (async () => {
+    try {
+      const { data: athlete, error } = await supabase
+        .from("athletes")
+        .select("share_active, share_code")
+        .eq("id", athleteId)
+        .single();
+
+      if (error || !athlete?.share_active) return;
+
+      const channel = supabase.channel(`athlete:${athlete.share_code}`);
+      await channel.send({
+        type: "broadcast",
+        event: "injuries_changed",
+        payload: {
+          athlete_id: athleteId,
+          at: new Date().toISOString(),
+        },
+      });
+      await supabase.removeChannel(channel);
+    } catch (error) {
+      console.error("[broadcastInjuriesChanged] non-fatal error", {
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  })();
+}
+
 /**
  * PATCH /api/athletes/[id]/injuries/[injuryId]
  * Partial update of one injury row.
@@ -77,6 +109,8 @@ export async function PATCH(
     );
   }
 
+  broadcastInjuriesChanged(supabase, id);
+
   return NextResponse.json({ data });
 }
 
@@ -120,6 +154,8 @@ export async function DELETE(
       { status: 404 },
     );
   }
+
+  broadcastInjuriesChanged(supabase, id);
 
   return new NextResponse(null, { status: 204 });
 }
