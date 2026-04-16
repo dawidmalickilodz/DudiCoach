@@ -22,11 +22,11 @@
 
 | ID | Title | Epic | Priority | Estimate | Status | Notes |
 |---|---|---|---|---|---|---|
-| US-001 | Logowanie trenera do panelu | EPIC-A | P0 | S | InE2E | Review Approve 2026-04-10 (reviews/US-001-review.md); E2E local pass 2026-04-16, preview/CI secrets pending |
-| US-002 | Backend CRUD zawodnika | EPIC-A | P0 | M | InE2E | Review Approve 2026-04-10 (reviews/US-002-review.md); E2E local pass 2026-04-16, preview/CI secrets pending |
-| US-003 | Frontend lista + edycja zawodnika z auto-save | EPIC-A | P0 | M | InE2E | Review Approve 2026-04-15 (reviews/US-003-review.md); E2E local pass 2026-04-16, preview/CI secrets pending |
-| US-004 | Share code + panel zawodnika + real-time | EPIC-C | P0 | L | InE2E | Review Approve 2026-04-15 (reviews/US-004-review.md); E2E local pass 2026-04-16, preview/CI secrets pending |
-| US-005 | Generowanie planu AI przez Claude | EPIC-B | P0 | L | InE2E | Review Approve 2026-04-15 (reviews/US-005-review.md); E2E local pass 2026-04-16, preview/CI secrets pending |
+| US-001 | Logowanie trenera do panelu | EPIC-A | P0 | S | Done | Review Approve 2026-04-10 (reviews/US-001-review.md); preview E2E pass 2026-04-16 |
+| US-002 | Backend CRUD zawodnika | EPIC-A | P0 | M | Done | Review Approve 2026-04-10 (reviews/US-002-review.md); preview E2E pass 2026-04-16 |
+| US-003 | Frontend lista + edycja zawodnika z auto-save | EPIC-A | P0 | M | Done | Review Approve 2026-04-15 (reviews/US-003-review.md); preview E2E pass 2026-04-16 |
+| US-004 | Share code + panel zawodnika + real-time | EPIC-C | P0 | L | Done | Review Approve 2026-04-15 (reviews/US-004-review.md); preview E2E pass 2026-04-16 |
+| US-005 | Generowanie planu AI przez Claude | EPIC-B | P0 | L | Done | Review Approve 2026-04-15 (reviews/US-005-review.md); preview E2E pass 2026-04-16 |
 
 ## Operational Notes (2026-04-15)
 
@@ -37,6 +37,7 @@
 
 - Full E2E suite executed locally with auth credentials: `22 passed`, `2 skipped` (US-005 AI opt-in), `0 failed`.
 - US-003 auto-save race in E2E was stabilized by waiting for persisted API snapshot before back navigation.
+- Full E2E suite executed on PR #6 preview after env/redeploy: `22 passed`, `2 skipped`, `0 failed`.
 
 ## Backlog - v1.1 (post-MVP)
 

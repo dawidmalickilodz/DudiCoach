@@ -2,7 +2,7 @@
 story_group: US-003-US-005
 agent: qa-test
 stage: e2e
-verdict: pass-local
+verdict: pass-preview
 date: 2026-04-16
 ---
 
@@ -10,14 +10,17 @@ date: 2026-04-16
 
 ## Summary
 
-US-003, US-004 and US-005 (non-AI path) are passing end-to-end locally on desktop and mobile projects.
+US-003, US-004 and US-005 (non-AI path) are passing end-to-end on PR #6 preview (desktop + mobile).
 
 ## Execution
 
 - Command:
 
 ```bash
-npm run test:e2e
+PLAYWRIGHT_BASE_URL="https://dudi-coach-git-codex-us-afb073-dawidmalickilodz-7164s-projects.vercel.app" \
+E2E_COACH_EMAIL="***" \
+E2E_COACH_PASSWORD="***" \
+npx playwright test --reporter=list
 ```
 
 - Result:
@@ -26,8 +29,8 @@ npm run test:e2e
   - `0 failed`
 
 Skipped tests are expected:
-- `US-005 happy path â€” generates a plan and renders 4-week viewer [opt-in]` (desktop)
-- `US-005 happy path â€” generates a plan and renders 4-week viewer [opt-in]` (mobile)
+- `US-005 happy path - generates a plan and renders 4-week viewer [opt-in]` (desktop)
+- `US-005 happy path - generates a plan and renders 4-week viewer [opt-in]` (mobile)
 
 These require explicit `E2E_ALLOW_AI_CALL=1` and valid AI provider key.
 
@@ -40,12 +43,7 @@ US-003 flake (auto-save race) was stabilized by waiting for persisted backend va
 
 This removed intermittent failures where form values were edited in UI but not yet committed before leaving the editor.
 
-## Preview/CI note
+## Optional AI coverage
 
-For the same authenticated coverage on preview/CI environments, set:
-
-- `E2E_COACH_EMAIL`
-- `E2E_COACH_PASSWORD`
-
-Optional AI coverage:
+To include the US-005 happy path (real Anthropic call), run with:
 - `E2E_ALLOW_AI_CALL=1`

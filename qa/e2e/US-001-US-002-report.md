@@ -2,7 +2,7 @@
 story_group: US-001-US-002
 agent: qa-test
 stage: e2e
-verdict: pass-local
+verdict: pass-preview
 date: 2026-04-16
 ---
 
@@ -10,14 +10,17 @@ date: 2026-04-16
 
 ## Summary
 
-US-001 (auth flow) and US-002 (API CRUD) are passing end-to-end locally with a real coach account (`E2E_COACH_EMAIL` + `E2E_COACH_PASSWORD`).
+US-001 (auth flow) and US-002 (API CRUD) are passing end-to-end against PR #6 preview using real credentials (`E2E_COACH_EMAIL` + `E2E_COACH_PASSWORD`).
 
 ## Execution
 
 - Command:
 
 ```bash
-npm run test:e2e
+PLAYWRIGHT_BASE_URL="https://dudi-coach-git-codex-us-afb073-dawidmalickilodz-7164s-projects.vercel.app" \
+E2E_COACH_EMAIL="***" \
+E2E_COACH_PASSWORD="***" \
+npx playwright test --reporter=list
 ```
 
 - Result:
@@ -35,12 +38,5 @@ npm run test:e2e
 - US-002:
   - authenticated API CRUD (`POST / GET-list / PATCH / GET-single / DELETE / GET-after-delete`)
   - cleanup in `finally`
-
-## Remaining for preview/CI parity
-
-To reproduce the same full auth path on preview and CI, secrets still need to be set in target environments:
-
-- `E2E_COACH_EMAIL`
-- `E2E_COACH_PASSWORD`
 
 Runbook: `qa/e2e/US-001-US-002-runbook.md`
