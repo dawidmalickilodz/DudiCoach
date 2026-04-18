@@ -1,0 +1,6 @@
+# Repo-local Codex configuration
+[project]
+name = "DudiCoach"
+
+[paths]
+agents_dir = ".codex/agents"

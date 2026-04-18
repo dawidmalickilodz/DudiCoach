@@ -1,0 +1,4 @@
+[agent]
+name = "security"
+role = "security_review"
+description = "Validates auth, data access, secret handling, and abuse protections."

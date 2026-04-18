@@ -1,0 +1,4 @@
+[agent]
+name = "reviewer"
+role = "code_review"
+description = "Performs independent code review with clear approval or rejection criteria."

@@ -1,0 +1,4 @@
+[agent]
+name = "planner"
+role = "planning"
+description = "Defines scope, risks, and verification plan before implementation."
