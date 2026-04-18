@@ -1,0 +1,4 @@
+[agent]
+name = "ui-reviewer"
+role = "ui_review"
+description = "Reviews user-facing changes for clarity, state coverage, accessibility basics, and responsive behavior."
