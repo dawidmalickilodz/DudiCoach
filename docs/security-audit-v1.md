@@ -367,3 +367,58 @@ Rekomendowana kolejność realizacji:
 - Decyzja: `Zamknięty / Częściowo zamknięty / Otwarty`
 - Podpis audytora: 
 - Podpis ownera technicznego: 
+
+---
+
+## 11) Runda 1 - wyniki operacyjne (2026-04-18)
+
+### Metadata (run 1)
+- Auditor: Codex (technical pass)
+- Repo: dawidmalickilodz/DudiCoach
+- Branch/SHA at start: main / 4aba08f
+- Scope: repository code + migrations + available GitHub metadata
+- Environment verified directly: local
+
+### Status by section
+
+| Point | Status | Priority | Evidence / note |
+|---|---|---|---|
+| 1.1 Secrets and `.env` | DO POPRAWY | P1 | `.gitignore` contains `.env*`; tracked files include only `.env.example`; local `.env.local` is non-empty (not tracked). Need full history scan with dedicated scanner + local backup policy check. |
+| 1.2 `NEXT_PUBLIC_*` | PASS | P0 | `.env.example` exposes only `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_APP_URL`. |
+| 1.3 Client/server boundary | PASS | P0 | No `SUPABASE_SERVICE_ROLE_KEY` usage found in app code paths; client-side env usage limited to `NEXT_PUBLIC_*`. |
+| 1.4 Error contract | DO POPRAWY | P2 | Critical UI surfaces are sanitized; still global inconsistency across APIs (e.g. validation `details` shape and mixed wording). |
+| 2.1 GitHub secret scanning/push protection | DO POPRAWY | P0 | Not verifiable from currently available API surface in this run. |
+| 2.2 GitHub branch protection (`main`) | DO POPRAWY | P1 | Default branch confirmed as `main`; required checks/review/protection rules not yet confirmed. |
+| 2.3 GitHub user access | DO POPRAWY | P1 | Owner/admin presence confirmed; full collaborator least-privilege review pending. |
+| 3.1 Vercel env vars separation/sensitivity | DO POPRAWY | P0/P1 | Requires Vercel dashboard/API verification (Preview vs Production, Sensitive flags). |
+| 3.2 Vercel project access | DO POPRAWY | P1 | Requires dashboard verification. |
+| 3.3 Vercel deploy hygiene | DO POPRAWY | P1 | Requires verification of redeploy discipline after env changes. |
+| 4.1 Supabase API key boundary | PASS | P0 | No service-role key exposure in tracked source; anon/public usage on client path. |
+| 4.2 Supabase RLS | PASS | P0/P1 | Migrations define RLS and policies for `profiles`, `athletes`, `training_plans`, `injuries`. |
+| 4.3 Supabase Security Advisor | DO POPRAWY | P1 | Dashboard check pending. |
+| 4.4 Supabase Storage access | DO POPRAWY | P1 | Bucket visibility and signed URL TTL review pending. |
+| 5.1 Stripe test/live separation | DO POPRAWY | P1 | Stripe integration not active in current codebase; pre-implementation control pending. |
+| 5.2 Stripe webhook verification | DO POPRAWY | P0 | N/A now; mandatory before Stripe rollout. |
+| 5.3 Stripe idempotency | DO POPRAWY | P0/P1 | N/A now; mandatory before Stripe rollout. |
+| 5.4 Stripe error exposure | DO POPRAWY | P1/P2 | N/A now; mandatory before Stripe rollout. |
+| 6.1 Backup/source-of-truth split | DO POPRAWY | P0/P2 | Requires manual validation: secrets not synced to cloud drives, code history in GitHub only. |
+
+### Minimum baseline result (run 1)
+- PASS: 5
+- FAIL: 0
+- DO POPRAWY: 5
+- Release decision: NO-GO until P0/P1 checks in GitHub/Vercel/Supabase/Stripe readiness are closed.
+
+### FAIL register (run 1 prioritized actions)
+
+| ID | Area | Issue | Priority | Owner | Due date | Status |
+|---|---|---|---|---|---|---|
+| F1 | GitHub protections | Missing confirmation of Secret Scanning, Push Protection, and `main` branch protection rules. | P0/P1 | Dawid | 2026-04-19 | Open |
+| F2 | Vercel env security | Missing confirmation of Preview/Production separation and Sensitive masking for secrets. | P0/P1 | Dawid | 2026-04-19 | Open |
+| F3 | Supabase runtime controls | Missing dashboard confirmation of Security Advisor and Storage access model. | P1 | Dawid | 2026-04-20 | Open |
+
+### Recommended execution order (next)
+1. Close F1 (GitHub protections).
+2. Close F2 (Vercel env controls).
+3. Close F3 (Supabase dashboard controls).
+4. Re-run baseline and switch release decision to GO only when P0/P1 are closed.
