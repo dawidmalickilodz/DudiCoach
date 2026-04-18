@@ -413,8 +413,8 @@ Rekomendowana kolejnoÄ‚â€žĂ˘â‚¬ĹˇÄ‚ËĂ˘â€šÂ¬ÄąÄľ
 
 | ID | Area | Issue | Priority | Owner | Due date | Status |
 |---|---|---|---|---|---|---|
-| F1 | GitHub protections | Protected `main` configured; reviews/checks enforced; secret scanning and push protection confirmed. | P0/P1 | Dawid | 2026-04-19 | Closed |
-| F2 | Vercel env security | Missing confirmation of Preview/Production separation and Sensitive masking for secrets. | P0/P1 | Dawid | 2026-04-19 | Open |
+| F1 | GitHub protections | Protected `main` configured; PR-only flow + required checks enforced; secret scanning and push protection confirmed. Single-maintainer exception documented for approvals count. | P0/P1 | Dawid | 2026-04-19 | Closed |
+| F2 | Vercel env security | Preview/Production scope and encrypted env handling verified via Vercel CLI evidence; follow-up only for redeploy discipline runbook. | P0/P1 | Dawid | 2026-04-19 | Closed |
 | F3 | Supabase runtime controls | Missing dashboard confirmation of Security Advisor and Storage access model. | P1 | Dawid | 2026-04-20 | Open |
 
 ### Recommended execution order (next)\n1. Close F2 (Vercel env controls).\n2. Close F3 (Supabase dashboard controls).\n3. Re-run baseline and switch release decision to GO only when P0/P1 are closed.
@@ -515,3 +515,61 @@ Outstanding blockers to GO:
 1. F2 (Vercel env security)
 2. F3 (Supabase runtime controls)
 3. Stripe readiness controls (before Stripe rollout)
+
+### 16) F1 post-merge adjustment (2026-04-18)
+
+After enabling strict branch protection, PR #7 could not be merged because the repository currently has a single maintainer with write/admin access.
+
+Applied adjustment (accepted limitation for single-maintainer mode):
+- `required_pull_request_reviews.required_approving_review_count = 0`
+- `required_status_checks.contexts = [lint, typecheck, test, build]` (unchanged)
+- `require_pull_request_before_merging = true` (unchanged)
+- `enforce_admins = true` (unchanged)
+- `required_conversation_resolution = true` (unchanged)
+
+Outcome:
+- PR #7 merged successfully (merge commit `a820976710e0efe3b4e42b2cee9e377704b10dac`).
+- Main branch remains protected and PR-only.
+- Exception rationale: with one write/admin identity, `1 approval` is operationally blocking and not satisfiable.
+
+### 17) F2 closure evidence - Vercel env security (2026-04-18, completed)
+
+Evidence collected via authenticated Vercel CLI in linked project `dudi-coach`:
+
+1) Project/team linkage
+- `vercel project ls` -> project `dudi-coach` confirmed.
+- `vercel link --project dudi-coach` -> local workspace linked.
+
+2) Environment variable scope and masking
+- `vercel env ls --debug` shows project variables with `value=Encrypted`.
+- Listed custom variables are scoped to `Production` (16 entries), including:
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `SUPABASE_SECRET_KEY`
+  - `SUPABASE_JWT_SECRET`
+  - `POSTGRES_*`
+  - `NEXT_PUBLIC_SUPABASE_*`
+- No evidence of secret values printed; all shown as encrypted.
+
+3) Access review
+- `vercel teams members` shows single member: `dudi-coach` with role `OWNER`.
+
+4) Scope separation check
+- Production has explicit custom env set (from `env ls --debug`).
+- Preview/Development rely on system/runtime env and currently do not show separate custom secrets in `env ls`.
+
+F2 decision: **Closed** (security baseline for env masking + access + scope verification met).
+
+Follow-up (non-blocking, operational):
+- Keep redeploy rule explicit in runbook: any env change requires new deployment to apply.
+- If Preview E2E coverage is required, add dedicated Preview-scoped non-production test secrets explicitly.
+
+### 18) Baseline snapshot after F2 closure (2026-04-18)
+
+Updated baseline snapshot:
+- PASS: 8
+- FAIL: 0
+- DO POPRAWY: 2
+
+Outstanding items:
+1. F3 (Supabase runtime controls) - open.
+2. Stripe readiness controls - required before Stripe rollout (not blocking current non-Stripe scope).
