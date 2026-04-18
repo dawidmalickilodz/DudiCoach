@@ -27,6 +27,7 @@ export interface UseAutoSaveOptions<TFormValues extends FieldValues> {
   setError: UseFormSetError<TFormValues>;
   mutationFn: (data: TFormValues) => Promise<unknown>;
   debounceMs?: number;
+  publicErrorMessage?: string;
 }
 
 export interface UseAutoSaveReturn {
@@ -41,6 +42,7 @@ export function useAutoSave<TFormValues extends FieldValues>({
   setError,
   mutationFn,
   debounceMs = 800,
+  publicErrorMessage,
 }: UseAutoSaveOptions<TFormValues>): UseAutoSaveReturn {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -87,7 +89,8 @@ export function useAutoSave<TFormValues extends FieldValues>({
             setLastSavedAt(new Date());
           } catch (err) {
             const message =
-              err instanceof Error ? err.message : "Save failed";
+              publicErrorMessage ??
+              (err instanceof Error ? err.message : "Save failed");
             setSaveError(message);
             setError("root", { message });
           } finally {
@@ -103,7 +106,7 @@ export function useAutoSave<TFormValues extends FieldValues>({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [watch, debounceMs, setError]);
+  }, [watch, debounceMs, setError, publicErrorMessage]);
 
   return { isSaving, lastSavedAt, saveError };
 }

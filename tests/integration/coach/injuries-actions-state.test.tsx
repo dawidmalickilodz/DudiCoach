@@ -103,6 +103,11 @@ describe("Injuries action disabled states", () => {
     expect(
       screen.getByLabelText(pl.coach.athlete.injuries.field.status),
     ).toBeDisabled();
+    expect(mockUseAutoSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        publicErrorMessage: pl.coach.athlete.injuries.errorGeneric,
+      }),
+    );
   });
 
   it("disables delete and expand actions while delete mutation is pending", () => {
@@ -125,5 +130,40 @@ describe("Injuries action disabled states", () => {
     expect(
       screen.getByRole("button", { name: /Naciągnięcie dwugłowego/i }),
     ).toBeDisabled();
+  });
+
+  it("shows sanitized create error message without raw backend details", () => {
+    mockUseCreateInjury.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+      error: new Error("SQLSTATE 42501: permission denied for table injuries"),
+    });
+
+    render(<InjuryCreateForm athleteId="athlete-uuid-001" onClose={vi.fn()} />);
+
+    expect(
+      screen.getByText(pl.coach.athlete.injuries.errorGeneric),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/SQLSTATE 42501/i)).not.toBeInTheDocument();
+  });
+
+  it("shows sanitized delete error message without raw backend details", () => {
+    mockUseDeleteInjury.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+      error: new Error("DB timeout while deleting injury #123"),
+    });
+
+    render(
+      <InjuryCard
+        athleteId="athlete-uuid-001"
+        injury={makeInjury()}
+      />,
+    );
+
+    expect(
+      screen.getByText(pl.coach.athlete.injuries.errorGeneric),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/DB timeout/i)).not.toBeInTheDocument();
   });
 });

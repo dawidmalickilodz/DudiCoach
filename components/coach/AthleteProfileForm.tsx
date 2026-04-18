@@ -63,6 +63,7 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
     setError,
     mutationFn: (data) => updateMutation.mutateAsync(data),
     debounceMs: 800,
+    publicErrorMessage: pl.coach.athlete.online.errorGeneric,
   });
 
   const watchedStartDate = watch("training_start_date");

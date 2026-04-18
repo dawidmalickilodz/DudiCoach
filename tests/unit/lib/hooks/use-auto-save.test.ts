@@ -427,6 +427,36 @@ describe("useAutoSave", () => {
     expect(result.current.saveError).toBeNull();
   });
 
+  it("uses publicErrorMessage and does not expose raw mutation error", async () => {
+    const rawMessage = "DB timeout: relation athletes not found";
+    const mutationFn = vi.fn().mockRejectedValue(new Error(rawMessage));
+    const setError = makeSetError();
+    const { watch, triggerChange } = makeMockWatch();
+
+    const { result } = renderHook(() =>
+      useAutoSave({
+        watch,
+        formState: makeFormState(),
+        setError,
+        mutationFn,
+        publicErrorMessage: "Nie udało się zapisać zmian.",
+      }),
+    );
+
+    act(() => triggerChange()); // skip first-render
+    act(() => triggerChange({ name: "Jan" }));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+
+    expect(result.current.saveError).toBe("Nie udało się zapisać zmian.");
+    expect(setError).toHaveBeenCalledWith("root", {
+      message: "Nie udało się zapisać zmian.",
+    });
+    expect(result.current.saveError).not.toContain("relation athletes");
+  });
+
   // ---- cleanup on unmount ---------------------------------------------------
 
   it("unsubscribes watch and clears timer on unmount", () => {

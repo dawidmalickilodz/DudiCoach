@@ -49,6 +49,7 @@ export default function InjuryEditForm({
     formState,
     setError,
     debounceMs: 800,
+    publicErrorMessage: pl.coach.athlete.injuries.errorGeneric,
     mutationFn: (input) =>
       mutation.mutateAsync({
         injuryId: injury.id,

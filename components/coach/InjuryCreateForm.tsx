@@ -61,8 +61,8 @@ export default function InjuryCreateForm({
     return () => onSubmittingChange(false);
   }, [isSubmitting, onSubmittingChange]);
 
-  const mutationError = mutation.error instanceof Error
-    ? mutation.error.message
+  const mutationError = mutation.error
+    ? pl.coach.athlete.injuries.errorGeneric
     : null;
 
   return (

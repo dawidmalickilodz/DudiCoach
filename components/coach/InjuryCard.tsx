@@ -65,9 +65,7 @@ export default function InjuryCard({ athleteId, injury }: InjuryCardProps) {
 
       {deleteMutation.error && (
         <p role="alert" className="mt-3 text-xs text-destructive">
-          {deleteMutation.error instanceof Error
-            ? deleteMutation.error.message
-            : pl.coach.athlete.injuries.errorGeneric}
+          {pl.coach.athlete.injuries.errorGeneric}
         </p>
       )}
 
