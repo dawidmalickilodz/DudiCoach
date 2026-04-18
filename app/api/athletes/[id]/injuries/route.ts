@@ -5,6 +5,54 @@ import { createClient } from "@/lib/supabase/server";
 import { createInjurySchema } from "@/lib/validation/injury";
 
 type RouteContext = { params: Promise<{ id: string }> };
+type SupabaseErrorLike = { code?: string; message?: string } | null;
+
+const NOT_FOUND_ERROR_CODE = "PGRST116";
+const ATHLETE_NOT_FOUND_ERROR = "Nie znaleziono zawodnika.";
+
+function isNotFoundError(error: SupabaseErrorLike): boolean {
+  return error?.code === NOT_FOUND_ERROR_CODE;
+}
+
+async function ensureAthleteExists(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  athleteId: string,
+  routeLabel: string,
+  internalErrorMessage: string,
+): Promise<NextResponse | null> {
+  const { data: athlete, error } = await supabase
+    .from("athletes")
+    .select("id")
+    .eq("id", athleteId)
+    .single();
+
+  if (error) {
+    if (isNotFoundError(error)) {
+      return NextResponse.json(
+        { error: ATHLETE_NOT_FOUND_ERROR },
+        { status: 404 },
+      );
+    }
+
+    console.error(`[${routeLabel}] failed to verify athlete`, {
+      code: error.code,
+      message: error.message,
+    });
+    return NextResponse.json(
+      { error: internalErrorMessage },
+      { status: 500 },
+    );
+  }
+
+  if (!athlete) {
+    return NextResponse.json(
+      { error: ATHLETE_NOT_FOUND_ERROR },
+      { status: 404 },
+    );
+  }
+
+  return null;
+}
 
 function broadcastInjuriesChanged(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -54,6 +102,14 @@ export async function GET(
     "GET /api/athletes/[id]/injuries",
   );
   if (response) return response;
+
+  const athleteCheck = await ensureAthleteExists(
+    supabase,
+    id,
+    "GET /api/athletes/[id]/injuries",
+    "Nie udało się pobrać kontuzji.",
+  );
+  if (athleteCheck) return athleteCheck;
 
   const { data, error } = await supabase
     .from("injuries")
@@ -107,6 +163,14 @@ export async function POST(
     );
   }
 
+  const athleteCheck = await ensureAthleteExists(
+    supabase,
+    id,
+    "POST /api/athletes/[id]/injuries",
+    "Nie udało się dodać kontuzji.",
+  );
+  if (athleteCheck) return athleteCheck;
+
   const { data, error } = await supabase
     .from("injuries")
     .insert({
@@ -116,14 +180,28 @@ export async function POST(
     .select("*")
     .single();
 
-  if (error || !data) {
+  if (error) {
+    if (error.code === "23503") {
+      return NextResponse.json(
+        { error: ATHLETE_NOT_FOUND_ERROR },
+        { status: 404 },
+      );
+    }
+
     console.error("[POST /api/athletes/[id]/injuries] Supabase error", {
-      code: error?.code,
-      message: error?.message,
+      code: error.code,
+      message: error.message,
     });
     return NextResponse.json(
       { error: "Nie udało się dodać kontuzji." },
       { status: 500 },
+    );
+  }
+
+  if (!data) {
+    return NextResponse.json(
+      { error: ATHLETE_NOT_FOUND_ERROR },
+      { status: 404 },
     );
   }
 

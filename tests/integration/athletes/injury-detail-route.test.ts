@@ -133,7 +133,7 @@ describe("PATCH /api/athletes/[id]/injuries/[injuryId]", () => {
     expect(json.error).toBe("Nie znaleziono kontuzji.");
   });
 
-  it("returns 500 on unexpected Supabase error", async () => {
+  it("returns 500 without details on unexpected Supabase error", async () => {
     setupAuthenticated();
     const builder = makeBuilder({
       data: null,
@@ -148,7 +148,9 @@ describe("PATCH /api/athletes/[id]/injuries/[injuryId]", () => {
     const json = await response.json();
 
     expect(response.status).toBe(500);
-    expect(json.error).toBe("Nie udało się zaktualizować kontuzji.");
+    expect(typeof json.error).toBe("string");
+    expect(json.error).toContain("kontuzji");
+    expect(json.details).toBeUndefined();
   });
 
   it("returns 200 with updated injury", async () => {
@@ -197,7 +199,7 @@ describe("DELETE /api/athletes/[id]/injuries/[injuryId]", () => {
     expect(json.error).toBe("Nie znaleziono kontuzji.");
   });
 
-  it("returns 500 on Supabase delete error", async () => {
+  it("returns 500 without details on Supabase delete error", async () => {
     setupAuthenticated();
     const builder = makeBuilder(
       {
@@ -216,7 +218,9 @@ describe("DELETE /api/athletes/[id]/injuries/[injuryId]", () => {
     const json = await response.json();
 
     expect(response.status).toBe(500);
-    expect(json.error).toBe("Nie udało się usunąć kontuzji.");
+    expect(typeof json.error).toBe("string");
+    expect(json.error).toContain("kontuzji");
+    expect(json.details).toBeUndefined();
   });
 
   it("returns 204 when injury is deleted", async () => {

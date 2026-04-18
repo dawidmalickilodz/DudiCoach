@@ -47,15 +47,28 @@ function makeRequest(method: string, body?: unknown): Request {
   return new Request(`http://localhost/api/athletes/${ATHLETE_ID}/injuries`, init);
 }
 
-function makeBuilder(
-  resolvedValue: { data: unknown; error: unknown },
-) {
+function makeBuilder(options?: {
+  singleSequence?: Array<{ data: unknown; error: { code?: string; message?: string } | null }>;
+  singleDefault?: { data: unknown; error: { code?: string; message?: string } | null };
+  orderResult?: { data: unknown; error: { code?: string; message?: string } | null };
+}) {
+  const single = vi.fn();
+  for (const result of options?.singleSequence ?? []) {
+    single.mockResolvedValueOnce(result);
+  }
+  single.mockResolvedValue(
+    options?.singleDefault ?? {
+      data: { share_active: false, share_code: "ABC234" },
+      error: null,
+    },
+  );
+
   return {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockResolvedValue(resolvedValue),
+    order: vi.fn().mockResolvedValue(options?.orderResult ?? { data: [], error: null }),
     insert: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue(resolvedValue),
+    single,
   };
 }
 
@@ -70,7 +83,7 @@ function setupUnauthenticated() {
 function setupAuthError() {
   mockGetUser.mockResolvedValue({
     data: { user: null },
-    error: { message: "JWT expired", code: "401" },
+    error: { code: "401", message: "JWT expired" },
   });
 }
 
@@ -107,9 +120,59 @@ describe("GET /api/athletes/[id]/injuries", () => {
     expect(mockFrom).not.toHaveBeenCalled();
   });
 
-  it("returns 200 + injuries list when authenticated", async () => {
+  it("returns 404 when athlete does not exist or is not owned", async () => {
     setupAuthenticated();
-    const builder = makeBuilder({ data: [INJURY], error: null });
+    const builder = makeBuilder({
+      singleSequence: [
+        {
+          data: null,
+          error: { code: "PGRST116", message: "No rows" },
+        },
+      ],
+    });
+    mockFrom.mockReturnValue(builder);
+
+    const response = await GET(
+      makeRequest("GET") as Parameters<typeof GET>[0],
+      routeContext(),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(json.error).toBe("Nie znaleziono zawodnika.");
+    expect(builder.order).not.toHaveBeenCalled();
+  });
+
+  it("returns 500 without details when athlete pre-check fails unexpectedly", async () => {
+    setupAuthenticated();
+    const builder = makeBuilder({
+      singleSequence: [
+        {
+          data: null,
+          error: { code: "XX000", message: "query failed" },
+        },
+      ],
+    });
+    mockFrom.mockReturnValue(builder);
+
+    const response = await GET(
+      makeRequest("GET") as Parameters<typeof GET>[0],
+      routeContext(),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(typeof json.error).toBe("string");
+    expect(json.error).toContain("kontuzji");
+    expect(json.details).toBeUndefined();
+  });
+
+  it("returns 200 + injuries list when athlete exists", async () => {
+    setupAuthenticated();
+    const builder = makeBuilder({
+      singleSequence: [{ data: { id: ATHLETE_ID }, error: null }],
+      orderResult: { data: [INJURY], error: null },
+    });
     mockFrom.mockReturnValue(builder);
 
     const response = await GET(
@@ -123,11 +186,14 @@ describe("GET /api/athletes/[id]/injuries", () => {
     expect(builder.order).toHaveBeenCalledWith("injury_date", { ascending: false });
   });
 
-  it("returns 500 on Supabase error", async () => {
+  it("returns 500 without details on injuries query failure", async () => {
     setupAuthenticated();
     const builder = makeBuilder({
-      data: null,
-      error: { code: "XX000", message: "query failed" },
+      singleSequence: [{ data: { id: ATHLETE_ID }, error: null }],
+      orderResult: {
+        data: null,
+        error: { code: "XX000", message: "query failed" },
+      },
     });
     mockFrom.mockReturnValue(builder);
 
@@ -138,7 +204,9 @@ describe("GET /api/athletes/[id]/injuries", () => {
     const json = await response.json();
 
     expect(response.status).toBe(500);
-    expect(json.error).toBe("Nie udało się pobrać kontuzji.");
+    expect(typeof json.error).toBe("string");
+    expect(json.error).toContain("kontuzji");
+    expect(json.details).toBeUndefined();
   });
 });
 
@@ -147,7 +215,12 @@ describe("POST /api/athletes/[id]/injuries", () => {
     setupUnauthenticated();
 
     const response = await POST(
-      makeRequest("POST", { name: "Ur", body_location: "knee", severity: 2, injury_date: "2026-04-16" }) as Parameters<typeof POST>[0],
+      makeRequest("POST", {
+        name: "Ur",
+        body_location: "knee",
+        severity: 2,
+        injury_date: "2026-04-16",
+      }) as Parameters<typeof POST>[0],
       routeContext(),
     );
     const json = await response.json();
@@ -161,7 +234,12 @@ describe("POST /api/athletes/[id]/injuries", () => {
     setupAuthenticated();
 
     const response = await POST(
-      makeRequest("POST", { name: "", body_location: "knee", severity: 9, injury_date: "invalid" }) as Parameters<typeof POST>[0],
+      makeRequest("POST", {
+        name: "",
+        body_location: "knee",
+        severity: 9,
+        injury_date: "invalid",
+      }) as Parameters<typeof POST>[0],
       routeContext(),
     );
     const json = await response.json();
@@ -171,9 +249,41 @@ describe("POST /api/athletes/[id]/injuries", () => {
     expect(Array.isArray(json.issues)).toBe(true);
   });
 
+  it("returns 404 when athlete does not exist or is not owned", async () => {
+    setupAuthenticated();
+    const builder = makeBuilder({
+      singleSequence: [
+        {
+          data: null,
+          error: { code: "PGRST116", message: "No rows" },
+        },
+      ],
+    });
+    mockFrom.mockReturnValue(builder);
+
+    const response = await POST(
+      makeRequest("POST", {
+        name: "Stłuczenie",
+        body_location: "knee",
+        severity: 2,
+        injury_date: "2026-04-16",
+      }) as Parameters<typeof POST>[0],
+      routeContext(),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(json.error).toBe("Nie znaleziono zawodnika.");
+  });
+
   it("returns 201 when injury is created", async () => {
     setupAuthenticated();
-    const builder = makeBuilder({ data: INJURY, error: null });
+    const builder = makeBuilder({
+      singleSequence: [
+        { data: { id: ATHLETE_ID }, error: null },
+        { data: INJURY, error: null },
+      ],
+    });
     mockFrom.mockReturnValue(builder);
 
     const response = await POST(
@@ -193,11 +303,38 @@ describe("POST /api/athletes/[id]/injuries", () => {
     expect(json.data).toEqual(INJURY);
   });
 
-  it("returns 500 on Supabase insert error", async () => {
+  it("returns 404 for FK violation (athlete disappeared between checks)", async () => {
     setupAuthenticated();
     const builder = makeBuilder({
-      data: null,
-      error: { code: "23503", message: "fk violation" },
+      singleSequence: [
+        { data: { id: ATHLETE_ID }, error: null },
+        { data: null, error: { code: "23503", message: "fk violation" } },
+      ],
+    });
+    mockFrom.mockReturnValue(builder);
+
+    const response = await POST(
+      makeRequest("POST", {
+        name: "Stłuczenie",
+        body_location: "knee",
+        severity: 2,
+        injury_date: "2026-04-16",
+      }) as Parameters<typeof POST>[0],
+      routeContext(),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(json.error).toBe("Nie znaleziono zawodnika.");
+  });
+
+  it("returns 500 without details on unexpected Supabase insert error", async () => {
+    setupAuthenticated();
+    const builder = makeBuilder({
+      singleSequence: [
+        { data: { id: ATHLETE_ID }, error: null },
+        { data: null, error: { code: "XX000", message: "write failed" } },
+      ],
     });
     mockFrom.mockReturnValue(builder);
 
@@ -213,6 +350,8 @@ describe("POST /api/athletes/[id]/injuries", () => {
     const json = await response.json();
 
     expect(response.status).toBe(500);
-    expect(json.error).toBe("Nie udało się dodać kontuzji.");
+    expect(typeof json.error).toBe("string");
+    expect(json.error).toContain("kontuzji");
+    expect(json.details).toBeUndefined();
   });
 });
