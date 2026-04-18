@@ -573,3 +573,25 @@ Updated baseline snapshot:
 Outstanding items:
 1. F3 (Supabase runtime controls) - open.
 2. Stripe readiness controls - required before Stripe rollout (not blocking current non-Stripe scope).
+
+### 19) F3 pre-check evidence and blocker (2026-04-18)
+
+What is already verified from repository and local tooling:
+- Supabase CLI is available (`supabase 2.92.1`).
+- RLS is defined in migrations for user-owned tables (`profiles`, `athletes`, `training_plans`, `injuries`).
+- No app/lib/tests code path currently uses Supabase Storage buckets (`storage.from(...)` not found in source paths).
+- `SUPABASE_SERVICE_ROLE_KEY` appears in `.env.example` only as a placeholder; no active server code reference found.
+
+Current blocker:
+- Supabase management API/dashboard verification is not possible yet in this shell because no authenticated Supabase access token is configured.
+- CLI evidence: `supabase projects list` returns `Access token not provided`.
+
+Why F3 remains open:
+- Security Advisor status must be validated directly in project dashboard/API.
+- Storage access model (bucket visibility, signed URL policy, TTL) must be confirmed from runtime configuration, not only from source code.
+
+Required next actions to close F3:
+1. Authenticate Supabase CLI (`supabase login`) with a project owner token.
+2. Verify Security Advisor findings and capture status in this audit.
+3. Verify Storage buckets configuration (public/private, policy model, signed URL TTL).
+4. Update F3 row from `Open` to `Closed` with concrete evidence links/screenshots/CLI output.
