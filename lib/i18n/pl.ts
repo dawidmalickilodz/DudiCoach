@@ -259,6 +259,10 @@ export const pl = {
     connect: "Połącz",
     connecting: "Łączę...",
     errorInvalidCode: "Nieprawidłowy kod. Poproś trenera o nowy.",
+    errorInvalidCodeFormat:
+      "Kod musi mieć 6 znaków (litery A-Z bez I i O oraz cyfry 2-9).",
+    errorLookupFailed:
+      "Nie udało się sprawdzić kodu. Sprawdź połączenie i spróbuj ponownie.",
     disconnect: "Rozłącz",
     refresh: "Odśwież",
     syncedJustNow: "Zsynchronizowano",
