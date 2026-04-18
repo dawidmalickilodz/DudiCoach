@@ -18,6 +18,7 @@ import SaveStatusIndicator from "./SaveStatusIndicator";
 interface InjuryEditFormProps {
   athleteId: string;
   injury: Injury;
+  disabled?: boolean;
 }
 
 const STATUS_OPTIONS = ["active", "healing", "healed"] as const;
@@ -27,6 +28,7 @@ const BODY_LOCATION_LABELS = pl.coach.athlete.injuries.bodyLocation as Record<st
 export default function InjuryEditForm({
   athleteId,
   injury,
+  disabled = false,
 }: InjuryEditFormProps) {
   const mutation = useUpdateInjury(athleteId);
 
@@ -53,9 +55,10 @@ export default function InjuryEditForm({
         input,
       }),
   });
+  const isFormDisabled = disabled || isSaving || mutation.isPending;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" aria-busy={isFormDisabled}>
       <div className="flex h-5 items-center justify-end">
         <SaveStatusIndicator
           isSaving={isSaving}
@@ -64,107 +67,109 @@ export default function InjuryEditForm({
         />
       </div>
 
-      <FormField
-        id={`injury-edit-name-${injury.id}`}
-        label={pl.coach.athlete.injuries.field.name}
-        error={formState.errors.name?.message}
-      >
-        <input
+      <fieldset disabled={isFormDisabled} className="space-y-4">
+        <FormField
           id={`injury-edit-name-${injury.id}`}
-          type="text"
-          autoComplete="off"
-          className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm"
-          {...register("name")}
-        />
-      </FormField>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FormField
-          id={`injury-edit-body-location-${injury.id}`}
-          label={pl.coach.athlete.injuries.field.bodyLocation}
-          error={formState.errors.body_location?.message}
-        >
-          <select
-            id={`injury-edit-body-location-${injury.id}`}
-            className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm"
-            {...register("body_location")}
-          >
-            {BODY_LOCATIONS.map((location) => (
-              <option key={location.key} value={location.key}>
-                {BODY_LOCATION_LABELS[location.key] ?? location.label_pl}
-              </option>
-            ))}
-          </select>
-        </FormField>
-
-        <FormField
-          id={`injury-edit-severity-${injury.id}`}
-          label={pl.coach.athlete.injuries.field.severity}
-          error={formState.errors.severity?.message}
-        >
-          <select
-            id={`injury-edit-severity-${injury.id}`}
-            className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm"
-            {...register("severity", {
-              setValueAs: (value) => Number(value),
-            })}
-          >
-            {SEVERITY_OPTIONS.map((severity) => (
-              <option key={severity} value={severity}>
-                {pl.coach.athlete.injuries.severity[severity]}
-              </option>
-            ))}
-          </select>
-        </FormField>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FormField
-          id={`injury-edit-date-${injury.id}`}
-          label={pl.coach.athlete.injuries.field.injuryDate}
-          error={formState.errors.injury_date?.message}
+          label={pl.coach.athlete.injuries.field.name}
+          error={formState.errors.name?.message}
         >
           <input
-            id={`injury-edit-date-${injury.id}`}
-            type="date"
-            className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm"
-            {...register("injury_date")}
+            id={`injury-edit-name-${injury.id}`}
+            type="text"
+            autoComplete="off"
+            className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            {...register("name")}
           />
         </FormField>
 
-        <FormField
-          id={`injury-edit-status-${injury.id}`}
-          label={pl.coach.athlete.injuries.field.status}
-          error={formState.errors.status?.message}
-        >
-          <select
-            id={`injury-edit-status-${injury.id}`}
-            className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm"
-            {...register("status")}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            id={`injury-edit-body-location-${injury.id}`}
+            label={pl.coach.athlete.injuries.field.bodyLocation}
+            error={formState.errors.body_location?.message}
           >
-            {STATUS_OPTIONS.map((status) => (
-              <option key={status} value={status}>
-                {pl.coach.athlete.injuries.status[status]}
-              </option>
-            ))}
-          </select>
-        </FormField>
-      </div>
+            <select
+              id={`injury-edit-body-location-${injury.id}`}
+              className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              {...register("body_location")}
+            >
+              {BODY_LOCATIONS.map((location) => (
+                <option key={location.key} value={location.key}>
+                  {BODY_LOCATION_LABELS[location.key] ?? location.label_pl}
+                </option>
+              ))}
+            </select>
+          </FormField>
 
-      <FormField
-        id={`injury-edit-notes-${injury.id}`}
-        label={pl.coach.athlete.injuries.field.notes}
-        error={formState.errors.notes?.message}
-      >
-        <textarea
+          <FormField
+            id={`injury-edit-severity-${injury.id}`}
+            label={pl.coach.athlete.injuries.field.severity}
+            error={formState.errors.severity?.message}
+          >
+            <select
+              id={`injury-edit-severity-${injury.id}`}
+              className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              {...register("severity", {
+                setValueAs: (value) => Number(value),
+              })}
+            >
+              {SEVERITY_OPTIONS.map((severity) => (
+                <option key={severity} value={severity}>
+                  {pl.coach.athlete.injuries.severity[severity]}
+                </option>
+              ))}
+            </select>
+          </FormField>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            id={`injury-edit-date-${injury.id}`}
+            label={pl.coach.athlete.injuries.field.injuryDate}
+            error={formState.errors.injury_date?.message}
+          >
+            <input
+              id={`injury-edit-date-${injury.id}`}
+              type="date"
+              className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              {...register("injury_date")}
+            />
+          </FormField>
+
+          <FormField
+            id={`injury-edit-status-${injury.id}`}
+            label={pl.coach.athlete.injuries.field.status}
+            error={formState.errors.status?.message}
+          >
+            <select
+              id={`injury-edit-status-${injury.id}`}
+              className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              {...register("status")}
+            >
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {pl.coach.athlete.injuries.status[status]}
+                </option>
+              ))}
+            </select>
+          </FormField>
+        </div>
+
+        <FormField
           id={`injury-edit-notes-${injury.id}`}
-          rows={3}
-          className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm resize-y"
-          {...register("notes", {
-            setValueAs: (value) => (value === "" ? undefined : value),
-          })}
-        />
-      </FormField>
+          label={pl.coach.athlete.injuries.field.notes}
+          error={formState.errors.notes?.message}
+        >
+          <textarea
+            id={`injury-edit-notes-${injury.id}`}
+            rows={3}
+            className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm resize-y disabled:cursor-not-allowed disabled:opacity-60"
+            {...register("notes", {
+              setValueAs: (value) => (value === "" ? undefined : value),
+            })}
+          />
+        </FormField>
+      </fieldset>
     </div>
   );
 }

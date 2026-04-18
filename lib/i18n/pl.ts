@@ -162,6 +162,8 @@ export const pl = {
       injuries: {
         sectionTitle: "Kontuzje zawodnika",
         empty: "Brak zarejestrowanych kontuzji.",
+        emptyHint: "Kliknij \"Dodaj kontuzję\", aby dodać pierwszą pozycję.",
+        loading: "Ładowanie listy kontuzji...",
         addButton: "Dodaj kontuzję",
         closeCreate: "Zamknij formularz",
         createTitle: "Nowa kontuzja",

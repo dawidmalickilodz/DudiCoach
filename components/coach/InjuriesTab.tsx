@@ -14,8 +14,17 @@ interface InjuriesTabProps {
 
 export default function InjuriesTab({ athlete }: InjuriesTabProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateSubmitting, setIsCreateSubmitting] = useState(false);
   const injuriesQuery = useInjuries(athlete.id);
   const injuries = injuriesQuery.data ?? [];
+  const hasError = Boolean(injuriesQuery.error);
+  const hasInjuries = injuries.length > 0;
+  const showInitialLoading = injuriesQuery.isLoading && !hasInjuries;
+  const showEmptyState = !showInitialLoading && !hasError && injuries.length === 0;
+
+  async function handleRetry() {
+    await injuriesQuery.refetch();
+  }
 
   return (
     <div className="space-y-4">
@@ -27,7 +36,8 @@ export default function InjuriesTab({ athlete }: InjuriesTabProps) {
         <button
           type="button"
           onClick={() => setIsCreateOpen((prev) => !prev)}
-          className="rounded-input bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+          disabled={isCreateSubmitting}
+          className="rounded-input bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isCreateOpen
             ? pl.coach.athlete.injuries.closeCreate
@@ -39,26 +49,46 @@ export default function InjuriesTab({ athlete }: InjuriesTabProps) {
         <InjuryCreateForm
           athleteId={athlete.id}
           onClose={() => setIsCreateOpen(false)}
+          onSubmittingChange={setIsCreateSubmitting}
         />
       )}
 
-      {injuriesQuery.isLoading && (
-        <p className="text-sm text-muted-foreground">{pl.common.loading}</p>
+      {showInitialLoading && (
+        <div className="rounded-card border border-border bg-card px-4 py-3">
+          <p className="text-sm text-muted-foreground">
+            {pl.coach.athlete.injuries.loading}
+          </p>
+        </div>
       )}
 
-      {injuriesQuery.error && (
-        <p role="alert" className="text-sm text-destructive">
-          {pl.coach.athlete.injuries.errorGeneric}
-        </p>
+      {hasError && !hasInjuries && (
+        <div className="rounded-card border border-destructive/30 bg-card px-4 py-3 space-y-3">
+          <p role="alert" className="text-sm text-destructive">
+            {pl.coach.athlete.injuries.errorGeneric}
+          </p>
+          <button
+            type="button"
+            onClick={handleRetry}
+            disabled={injuriesQuery.isFetching}
+            className="rounded-input border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-input disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {injuriesQuery.isFetching ? pl.common.loading : pl.common.tryAgain}
+          </button>
+        </div>
       )}
 
-      {!injuriesQuery.isLoading && injuries.length === 0 && (
-        <p className="rounded-card border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-          {pl.coach.athlete.injuries.empty}
-        </p>
+      {showEmptyState && (
+        <div className="rounded-card border border-border bg-card px-4 py-3 space-y-2">
+          <p className="text-sm text-muted-foreground">
+            {pl.coach.athlete.injuries.empty}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {pl.coach.athlete.injuries.emptyHint}
+          </p>
+        </div>
       )}
 
-      {injuries.length > 0 && (
+      {hasInjuries && (
         <div className="space-y-3">
           {injuries.map((injury) => (
             <InjuryCard

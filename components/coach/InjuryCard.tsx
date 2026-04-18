@@ -35,6 +35,7 @@ export default function InjuryCard({ athleteId, injury }: InjuryCardProps) {
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
+          disabled={deleteMutation.isPending}
           className="text-left flex-1"
           aria-expanded={expanded}
         >
@@ -72,7 +73,11 @@ export default function InjuryCard({ athleteId, injury }: InjuryCardProps) {
 
       {expanded && (
         <div className="mt-4 border-t border-border pt-4">
-          <InjuryEditForm athleteId={athleteId} injury={injury} />
+          <InjuryEditForm
+            athleteId={athleteId}
+            injury={injury}
+            disabled={deleteMutation.isPending}
+          />
         </div>
       )}
     </article>
