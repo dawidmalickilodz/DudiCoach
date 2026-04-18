@@ -6,17 +6,17 @@
 - Repo: 
 - Branch / commit SHA: 
 - Zakres (aplikacja / API / infra): 
-- Ĺšrodowisko (local / preview / production): 
+- ÄąĹˇrodowisko (local / preview / production): 
 
 ## Legenda statusu
-- `PASS` - kontrola speĹ‚niona, bez dziaĹ‚aĹ„ naprawczych.
-- `FAIL` - krytyczna luka lub niespeĹ‚niona kontrola, wymagane szybkie dziaĹ‚ania.
-- `DO POPRAWY` - czÄ™Ĺ›ciowo speĹ‚nione; jest ryzyko lub brak formalizacji.
+- `PASS` - kontrola speÄąâ€šniona, bez dziaÄąâ€šaÄąâ€ž naprawczych.
+- `FAIL` - krytyczna luka lub niespeÄąâ€šniona kontrola, wymagane szybkie dziaÄąâ€šania.
+- `DO POPRAWY` - czĂ„â„˘Äąâ€şciowo speÄąâ€šnione; jest ryzyko lub brak formalizacji.
 
 ## Priorytet napraw
 - `P0` - sekret/security boundary/authorization/webhook verification.
 - `P1` - RLS, branch protection, env segregation, idempotency.
-- `P2` - spĂłjnoĹ›Ä‡ kontraktĂłw bĹ‚Ä™dĂłw, hygiene i standaryzacja.
+- `P2` - spÄ‚Ĺ‚jnoÄąâ€şĂ„â€ˇ kontraktÄ‚Ĺ‚w bÄąâ€šĂ„â„˘dÄ‚Ĺ‚w, hygiene i standaryzacja.
 
 ---
 
@@ -24,59 +24,59 @@
 
 ### 1.1 Sekrety i `.env`
 **Kontrole**
-- [ ] `.env.local` oraz analogiczne pliki sÄ… w `.gitignore`.
-- [ ] W repo nie ma realnych kluczy/tokenĂłw/sekretĂłw.
-- [ ] Brak hardcoded sekretĂłw w kodzie, testach, README i notatkach.
-- [ ] W repo sÄ… tylko przykĹ‚ady (`.env.example`), bez realnych wartoĹ›ci.
-- [ ] Historia git nie zawiera commitĂłw z dawnymi sekretami.
+- [ ] `.env.local` oraz analogiczne pliki sĂ„â€¦ w `.gitignore`.
+- [ ] W repo nie ma realnych kluczy/tokenÄ‚Ĺ‚w/sekretÄ‚Ĺ‚w.
+- [ ] Brak hardcoded sekretÄ‚Ĺ‚w w kodzie, testach, README i notatkach.
+- [ ] W repo sĂ„â€¦ tylko przykÄąâ€šady (`.env.example`), bez realnych wartoÄąâ€şci.
+- [ ] Historia git nie zawiera commitÄ‚Ĺ‚w z dawnymi sekretami.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P0/P1/P2`
-- DowĂłd (komendy, screenshoty, linki):
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d (komendy, screenshoty, linki):
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
 ### 1.2 `NEXT_PUBLIC_*`
 **Kontrole**
-- [ ] Wszystkie `NEXT_PUBLIC_*` zawierajÄ… tylko dane publiczne.
-- [ ] Brak sekretĂłw w `NEXT_PUBLIC_*` (Stripe secret, `service_role`, `whsec_`, prywatne tokeny).
+- [ ] Wszystkie `NEXT_PUBLIC_*` zawierajĂ„â€¦ tylko dane publiczne.
+- [ ] Brak sekretÄ‚Ĺ‚w w `NEXT_PUBLIC_*` (Stripe secret, `service_role`, `whsec_`, prywatne tokeny).
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P0/P1/P2`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
 ### 1.3 Granica klient/serwer
 **Kontrole**
-- [ ] Operacje uprzywilejowane wykonywane wyĹ‚Ä…cznie po stronie serwera.
-- [ ] Klient nie korzysta bezpoĹ›rednio z sekretĂłw.
-- [ ] Brak logiki â€žzaufaj klientowiâ€ť dla akcji wraĹĽliwych.
-- [ ] UI pokazuje tylko zsanityzowane komunikaty bĹ‚Ä™dĂłw.
+- [ ] Operacje uprzywilejowane wykonywane wyÄąâ€šĂ„â€¦cznie po stronie serwera.
+- [ ] Klient nie korzysta bezpoÄąâ€şrednio z sekretÄ‚Ĺ‚w.
+- [ ] Brak logiki Ă˘â‚¬Ĺľzaufaj klientowiĂ˘â‚¬ĹĄ dla akcji wraÄąÄ˝liwych.
+- [ ] UI pokazuje tylko zsanityzowane komunikaty bÄąâ€šĂ„â„˘dÄ‚Ĺ‚w.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P0/P1/P2`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
-### 1.4 Kontrakt bĹ‚Ä™dĂłw
+### 1.4 Kontrakt bÄąâ€šĂ„â„˘dÄ‚Ĺ‚w
 **Kontrole**
-- [ ] Route handlery nie zwracajÄ… `details`, stack trace, raw `error.message`.
-- [ ] UI nie renderuje surowego payloadu bĹ‚Ä™du.
-- [ ] Kody `401/403/404/500` sÄ… konsekwentnie rozdzielone.
+- [ ] Route handlery nie zwracajĂ„â€¦ `details`, stack trace, raw `error.message`.
+- [ ] UI nie renderuje surowego payloadu bÄąâ€šĂ„â„˘du.
+- [ ] Kody `401/403/404/500` sĂ„â€¦ konsekwentnie rozdzielone.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P1/P2`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
@@ -86,16 +86,16 @@
 
 ### 2.1 Secret scanning + push protection
 **Kontrole**
-- [ ] Secret scanning jest wĹ‚Ä…czony.
-- [ ] Push protection jest wĹ‚Ä…czone.
+- [ ] Secret scanning jest wÄąâ€šĂ„â€¦czony.
+- [ ] Push protection jest wÄąâ€šĂ„â€¦czone.
 - [ ] Bypass push protection jest ograniczony.
-- [ ] Alerty sÄ… monitorowane i majÄ… ownera.
+- [ ] Alerty sĂ„â€¦ monitorowane i majĂ„â€¦ ownera.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P0/P1`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
@@ -109,23 +109,23 @@
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P1`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
 ### 2.3 Uprawnienia repo
 **Kontrole**
-- [ ] Lista collaboratorĂłw jest aktualna.
+- [ ] Lista collaboratorÄ‚Ĺ‚w jest aktualna.
 - [ ] Minimalne role (least privilege).
 - [ ] Brak starych kont z write/admin.
-- [ ] UĹĽycie PAT ograniczone do koniecznych przypadkĂłw.
+- [ ] UÄąÄ˝ycie PAT ograniczone do koniecznych przypadkÄ‚Ĺ‚w.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P1`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
@@ -135,44 +135,44 @@
 
 ### 3.1 Environment Variables
 **Kontrole**
-- [ ] Preview i Production majÄ… rozdzielone sekrety.
-- [ ] WraĹĽliwe env vars oznaczone jako Sensitive.
-- [ ] Brak sekretĂłw w `NEXT_PUBLIC_*`.
-- [ ] Brak niepotrzebnego wspĂłĹ‚dzielenia tych samych wartoĹ›ci miÄ™dzy Ĺ›rodowiskami.
+- [ ] Preview i Production majĂ„â€¦ rozdzielone sekrety.
+- [ ] WraÄąÄ˝liwe env vars oznaczone jako Sensitive.
+- [ ] Brak sekretÄ‚Ĺ‚w w `NEXT_PUBLIC_*`.
+- [ ] Brak niepotrzebnego wspÄ‚Ĺ‚Äąâ€šdzielenia tych samych wartoÄąâ€şci miĂ„â„˘dzy Äąâ€şrodowiskami.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P0/P1`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
-### 3.2 DostÄ™p do projektu/teamu
+### 3.2 DostĂ„â„˘p do projektu/teamu
 **Kontrole**
-- [ ] DostÄ™py sÄ… ograniczone do minimum.
-- [ ] Brak nieaktywnych kont z dostÄ™pem do projektu.
-- [ ] WidocznoĹ›Ä‡ env vars ograniczona do potrzebnych osĂłb.
+- [ ] DostĂ„â„˘py sĂ„â€¦ ograniczone do minimum.
+- [ ] Brak nieaktywnych kont z dostĂ„â„˘pem do projektu.
+- [ ] WidocznoÄąâ€şĂ„â€ˇ env vars ograniczona do potrzebnych osÄ‚Ĺ‚b.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P1`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
 ### 3.3 Deploy hygiene
 **Kontrole**
 - [ ] Po zmianie env vars wykonywany jest nowy deploy/redeploy.
-- [ ] Preview nie uĹĽywa produkcyjnych sekretĂłw bez potrzeby.
+- [ ] Preview nie uÄąÄ˝ywa produkcyjnych sekretÄ‚Ĺ‚w bez potrzeby.
 - [ ] Production branch jest jawnie zdefiniowany.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P1`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
@@ -182,58 +182,58 @@
 
 ### 4.1 Klucze API
 **Kontrole**
-- [ ] Frontend uĹĽywa wyĹ‚Ä…cznie `anon` key.
-- [ ] `service_role` jest uĹĽywany tylko server-side.
+- [ ] Frontend uÄąÄ˝ywa wyÄąâ€šĂ„â€¦cznie `anon` key.
+- [ ] `service_role` jest uÄąÄ˝ywany tylko server-side.
 - [ ] Brak `service_role` w bundle, URL, logach i test fixtures.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P0`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
 ### 4.2 RLS
 **Kontrole**
-- [ ] RLS jest wĹ‚Ä…czone na wszystkich tabelach z danymi prywatnymi.
-- [ ] Polityki odpowiadajÄ… realnemu modelowi dostÄ™pu.
+- [ ] RLS jest wÄąâ€šĂ„â€¦czone na wszystkich tabelach z danymi prywatnymi.
+- [ ] Polityki odpowiadajĂ„â€¦ realnemu modelowi dostĂ„â„˘pu.
 - [ ] Ownership (`auth.uid()`) jest wymuszany poprawnie.
 - [ ] Brak przypadkowo otwartych tabel w `public`.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P0/P1`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
 ### 4.3 Security Advisor
 **Kontrole**
-- [ ] Brak krytycznych alertĂłw bez planu naprawy.
-- [ ] Alerty majÄ… status: naprawione / zaakceptowany wyjÄ…tek / plan + termin.
+- [ ] Brak krytycznych alertÄ‚Ĺ‚w bez planu naprawy.
+- [ ] Alerty majĂ„â€¦ status: naprawione / zaakceptowany wyjĂ„â€¦tek / plan + termin.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P1`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
 ### 4.4 Storage
 **Kontrole**
 - [ ] Public/private bucket access jest intencjonalny.
-- [ ] Prywatne pliki nie sÄ… publicznie dostÄ™pne.
-- [ ] Signed URLs majÄ… rozsÄ…dny TTL.
+- [ ] Prywatne pliki nie sĂ„â€¦ publicznie dostĂ„â„˘pne.
+- [ ] Signed URLs majĂ„â€¦ rozsĂ„â€¦dny TTL.
 - [ ] Upload ma ograniczenia typu/rozmiaru pliku.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P1`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
@@ -245,91 +245,91 @@
 **Kontrole**
 - [ ] Rozdzielone klucze test/live.
 - [ ] Rozdzielone webhook secrets test/live.
-- [ ] Production nie uĹĽywa endpointĂłw testowych.
+- [ ] Production nie uÄąÄ˝ywa endpointÄ‚Ĺ‚w testowych.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P0/P1`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
 ### 5.2 Webhook security
 **Kontrole**
-- [ ] Weryfikacja podpisu webhooka jest obowiÄ…zkowa.
+- [ ] Weryfikacja podpisu webhooka jest obowiĂ„â€¦zkowa.
 - [ ] Wykorzystywane jest `raw body`.
-- [ ] BĹ‚Ä™dny podpis koĹ„czy siÄ™ `400`.
-- [ ] Brak Ĺ›cieĹĽek omijajÄ…cych signature verification.
+- [ ] BÄąâ€šĂ„â„˘dny podpis koÄąâ€žczy siĂ„â„˘ `400`.
+- [ ] Brak Äąâ€şcieÄąÄ˝ek omijajĂ„â€¦cych signature verification.
 - [ ] Webhook secret jest przechowywany jako sekret i gotowy do rotacji.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P0`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
 ### 5.3 Idempotency i duplicate-event safety
 **Kontrole**
-- [ ] Eventy webhooka sÄ… obsĹ‚ugiwane idempotentnie.
-- [ ] Retry/duplikaty nie nadajÄ… uprawnieĹ„ wielokrotnie.
-- [ ] OpĂłĹşnione eventy nie psujÄ… finalnego stanu entitlements.
+- [ ] Eventy webhooka sĂ„â€¦ obsÄąâ€šugiwane idempotentnie.
+- [ ] Retry/duplikaty nie nadajĂ„â€¦ uprawnieÄąâ€ž wielokrotnie.
+- [ ] OpÄ‚Ĺ‚ÄąĹźnione eventy nie psujĂ„â€¦ finalnego stanu entitlements.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P0/P1`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
 ### 5.4 Error exposure
 **Kontrole**
 - [ ] Klient nie dostaje raw Stripe error payload.
-- [ ] Komunikaty billingowe sÄ… zsanityzowane.
-- [ ] Logi serwera zachowujÄ… diagnostykÄ™ bez wycieku do UI.
+- [ ] Komunikaty billingowe sĂ„â€¦ zsanityzowane.
+- [ ] Logi serwera zachowujĂ„â€¦ diagnostykĂ„â„˘ bez wycieku do UI.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P1/P2`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
 ---
 
-## 6) Backup i dostÄ™p wielourzÄ…dzeniowy
+## 6) Backup i dostĂ„â„˘p wielourzĂ„â€¦dzeniowy
 
-### 6.1 PodziaĹ‚ source of truth
+### 6.1 PodziaÄąâ€š source of truth
 **Kontrole**
-- [ ] `GitHub` jest ĹşrĂłdĹ‚em prawdy dla kodu i historii zmian.
-- [ ] `Google Drive` uĹĽywany tylko do dokumentĂłw roboczych/artefaktĂłw.
-- [ ] Brak sekretĂłw (`.env`, klucze API, webhook secrets) na Google Drive.
+- [ ] `GitHub` jest ÄąĹźrÄ‚Ĺ‚dÄąâ€šem prawdy dla kodu i historii zmian.
+- [ ] `Google Drive` uÄąÄ˝ywany tylko do dokumentÄ‚Ĺ‚w roboczych/artefaktÄ‚Ĺ‚w.
+- [ ] Brak sekretÄ‚Ĺ‚w (`.env`, klucze API, webhook secrets) na Google Drive.
 
 **Wynik**
 - Status: `PASS / FAIL / DO POPRAWY`
 - Priorytet: `P0/P2`
-- DowĂłd:
-- DziaĹ‚anie naprawcze:
+- DowÄ‚Ĺ‚d:
+- DziaÄąâ€šanie naprawcze:
 - Owner:
 - Termin:
 
 ---
 
-## 7) Minimum Security Baseline (10 punktĂłw)
+## 7) Minimum Security Baseline (10 punktÄ‚Ĺ‚w)
 
 Odhacz szybki baseline:
-- [ ] `.env.local` i podobne sÄ… ignorowane przez git.
-- [ ] W repo nie ma realnych sekretĂłw.
-- [ ] `NEXT_PUBLIC_*` nie zawiera sekretĂłw.
-- [ ] GitHub secret scanning i push protection sÄ… wĹ‚Ä…czone.
+- [ ] `.env.local` i podobne sĂ„â€¦ ignorowane przez git.
+- [ ] W repo nie ma realnych sekretÄ‚Ĺ‚w.
+- [ ] `NEXT_PUBLIC_*` nie zawiera sekretÄ‚Ĺ‚w.
+- [ ] GitHub secret scanning i push protection sĂ„â€¦ wÄąâ€šĂ„â€¦czone.
 - [ ] `main` ma branch protection.
-- [ ] Vercel preview/prod secrets sÄ… rozdzielone i sensitive tam, gdzie trzeba.
+- [ ] Vercel preview/prod secrets sĂ„â€¦ rozdzielone i sensitive tam, gdzie trzeba.
 - [ ] Supabase `service_role` nie wychodzi poza backend.
-- [ ] Wszystkie tabele prywatne majÄ… RLS.
+- [ ] Wszystkie tabele prywatne majĂ„â€¦ RLS.
 - [ ] Stripe webhook ma signature verification i idempotency.
 - [ ] Klient nie renderuje raw backend/Supabase/Stripe errors.
 
@@ -351,9 +351,9 @@ Odhacz szybki baseline:
 
 ---
 
-## 9) Plan naprawy (kolejnoĹ›Ä‡)
+## 9) Plan naprawy (kolejnoÄąâ€şĂ„â€ˇ)
 
-Rekomendowana kolejnoĹ›Ä‡ realizacji:
+Rekomendowana kolejnoÄąâ€şĂ„â€ˇ realizacji:
 1. Sekrety i env (`P0`).
 2. GitHub protections (`P0/P1`).
 3. Supabase RLS + `service_role` boundary (`P0/P1`).
@@ -363,8 +363,8 @@ Rekomendowana kolejnoĹ›Ä‡ realizacji:
 ---
 
 ## 10) Final sign-off
-- Data zamkniÄ™cia audytu: 
-- Decyzja: `ZamkniÄ™ty / CzÄ™Ĺ›ciowo zamkniÄ™ty / Otwarty`
+- Data zamkniĂ„â„˘cia audytu: 
+- Decyzja: `ZamkniĂ„â„˘ty / CzĂ„â„˘Äąâ€şciowo zamkniĂ„â„˘ty / Otwarty`
 - Podpis audytora: 
 - Podpis ownera technicznego: 
 
@@ -462,3 +462,21 @@ Mark F1 as `Closed` only if:
 1. Secret scanning + push protection are enabled.
 2. `main` has branch protection with review + required checks.
 3. Access review is completed and stale write/admin access removed.
+
+### 13) F1 evidence update (2026-04-18, automatic)
+
+Hard evidence from public GitHub API:
+- Endpoint: `GET https://api.github.com/repos/dawidmalickilodz/DudiCoach/branches/main`
+- Result: `"protected": false`
+- Protection summary: `"protection": { "enabled": false, "required_status_checks": { "enforcement_level": "off" ... } }`
+
+Implication:
+- `main` branch protection is currently not enabled.
+- F1 cannot be closed until branch protection/ruleset is configured.
+
+Immediate required action in GitHub UI:
+1. Enable protection (branch rule or ruleset) for `main`.
+2. Require PR reviews (minimum 1).
+3. Require status checks before merge.
+4. Restrict direct pushes/bypass where possible.
+5. Re-check API output and update F1 status to `Closed` only after confirmation.
