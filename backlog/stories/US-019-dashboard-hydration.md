@@ -4,7 +4,7 @@ title: Dashboard hydration — initialData w useAthletes query
 role: trener
 priority: P2
 estimate: XS
-status: InDevTests
+status: Done
 dependencies: [US-003]
 epic: EPIC-A
 design_required: false
