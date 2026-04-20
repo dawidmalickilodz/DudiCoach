@@ -124,6 +124,44 @@ export type Database = {
           },
         ]
       }
+      fitness_test_results: {
+        Row: {
+          athlete_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          test_date: string
+          test_key: string
+          value: number
+        }
+        Insert: {
+          athlete_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          test_date?: string
+          test_key: string
+          value: number
+        }
+        Update: {
+          athlete_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          test_date?: string
+          test_key?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fitness_test_results_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
