@@ -21,6 +21,9 @@ import type {
   UseFormWatch,
 } from "react-hook-form";
 
+import { pl } from "@/lib/i18n/pl";
+import { normalizeApiError } from "@/lib/utils/normalize-api-error";
+
 export interface UseAutoSaveOptions<TFormValues extends FieldValues> {
   watch: UseFormWatch<TFormValues>;
   formState: FormState<TFormValues>;
@@ -88,9 +91,10 @@ export function useAutoSave<TFormValues extends FieldValues>({
             await mutationFnRef.current(formValues as TFormValues);
             setLastSavedAt(new Date());
           } catch (err) {
-            const message =
-              publicErrorMessage ??
-              (err instanceof Error ? err.message : "Save failed");
+            const message = normalizeApiError(
+              err,
+              publicErrorMessage ?? pl.common.error,
+            );
             setSaveError(message);
             setError("root", { message });
           } finally {
