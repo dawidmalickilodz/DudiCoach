@@ -39,7 +39,7 @@ export async function shareAction(
 
   if (!res.ok) {
     const err = (await res.json()) as { error?: string };
-    throw new Error(err.error ?? "Nie udało się wykonać operacji.");
+    throw new Error(err.error ?? "Share action failed");
   }
 
   const json = (await res.json()) as { data: ShareActionResult };

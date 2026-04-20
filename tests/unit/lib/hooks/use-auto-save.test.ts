@@ -3,6 +3,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useAutoSave } from "@/lib/hooks/use-auto-save";
+import { pl } from "@/lib/i18n/pl";
 import type { UseFormWatch, FieldValues } from "react-hook-form";
 
 // ---------------------------------------------------------------------------
@@ -319,7 +320,7 @@ describe("useAutoSave", () => {
 
   // ---- error handling -------------------------------------------------------
 
-  it("sets saveError when mutation throws an Error", async () => {
+  it("sets saveError to pl.common.error (not raw message) when mutation throws and publicErrorMessage is absent", async () => {
     const mutationFn = vi.fn().mockRejectedValue(new Error("Network failure"));
     const setError = makeSetError();
     const { watch, triggerChange } = makeMockWatch();
@@ -330,6 +331,7 @@ describe("useAutoSave", () => {
         formState: makeFormState(),
         setError,
         mutationFn,
+        // publicErrorMessage intentionally omitted — hook must NOT leak raw message
       }),
     );
 
@@ -342,12 +344,14 @@ describe("useAutoSave", () => {
       vi.advanceTimersByTime(800);
     });
 
-    expect(result.current.saveError).toBe("Network failure");
+    // Must use pl.common.error fallback — never the raw Error.message
+    expect(result.current.saveError).toBe(pl.common.error);
+    expect(result.current.saveError).not.toBe("Network failure");
     expect(result.current.isSaving).toBe(false);
   });
 
-  it("calls setError('root', ...) when mutation throws", async () => {
-    const mutationFn = vi.fn().mockRejectedValue(new Error("Save failed"));
+  it("calls setError('root', ...) with pl.common.error when no publicErrorMessage is provided", async () => {
+    const mutationFn = vi.fn().mockRejectedValue(new Error("internal DB error"));
     const setError = makeSetError();
     const { watch, triggerChange } = makeMockWatch();
 
@@ -369,10 +373,10 @@ describe("useAutoSave", () => {
       vi.advanceTimersByTime(800);
     });
 
-    expect(setError).toHaveBeenCalledWith("root", { message: "Save failed" });
+    expect(setError).toHaveBeenCalledWith("root", { message: pl.common.error });
   });
 
-  it("uses 'Save failed' as fallback when thrown value is not an Error instance", async () => {
+  it("returns pl.common.error fallback when thrown value is not an Error instance", async () => {
     const mutationFn = vi.fn().mockRejectedValue("string error");
     const { watch, triggerChange } = makeMockWatch();
 
@@ -394,7 +398,7 @@ describe("useAutoSave", () => {
       vi.advanceTimersByTime(800);
     });
 
-    expect(result.current.saveError).toBe("Save failed");
+    expect(result.current.saveError).toBe(pl.common.error);
   });
 
   it("clears saveError before each new save attempt", async () => {
@@ -415,11 +419,11 @@ describe("useAutoSave", () => {
       }),
     );
 
-    // First cycle — will fail
+    // First cycle — will fail; saveError must be set to safe fallback (not raw message)
     act(() => triggerChange());         // skip first-render
     act(() => triggerChange({ name: "A" }));
     await act(async () => { vi.advanceTimersByTime(800); });
-    expect(result.current.saveError).toBe("First fail");
+    expect(result.current.saveError).toBe(pl.common.error);
 
     // Second cycle — should succeed and clear the error
     act(() => triggerChange({ name: "B" }));
