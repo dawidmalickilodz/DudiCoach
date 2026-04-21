@@ -595,3 +595,39 @@ Required next actions to close F3:
 2. Verify Security Advisor findings and capture status in this audit.
 3. Verify Storage buckets configuration (public/private, policy model, signed URL TTL).
 4. Update F3 row from `Open` to `Closed` with concrete evidence links/screenshots/CLI output.
+
+### 20) F3 follow-up update - `fitness_test_results` runtime closure (2026-04-21)
+
+Status: **CLOSED** (for this table-specific follow-up)
+
+Scope:
+- Post-migration runtime verification for `public.fitness_test_results`.
+
+Result:
+- Table existence: **PASS**
+- RLS enforcement: **PASS**
+- Policies presence/effectiveness: **PASS**
+
+Evidence:
+- Runtime REST probe against `public.fitness_test_results` returned `200`, confirming table existence in active runtime.
+- Anonymous insert was blocked with row-level security enforcement.
+- Authenticated scoped insert/select/delete behavior succeeded for owned data path.
+- Anonymous read/insert on the same data path was denied.
+
+Verification method:
+- Behavioral runtime verification was used instead of metadata introspection.
+- This is accepted as sufficient evidence because:
+  - table exists in active runtime,
+  - access-control behavior matches expected RLS isolation,
+  - anonymous access is blocked,
+  - authenticated scoped access is permitted only where expected.
+
+Decision:
+- The `fitness_test_results` runtime follow-up is now **closed**.
+
+Notes:
+- This closure applies specifically to `fitness_test_results`.
+- Other independent F3 follow-ups remain unchanged unless separately closed:
+  - Leaked Password Protection (accepted limitation / future plan upgrade),
+  - custom SMTP,
+  - Redirect URLs minimization.
