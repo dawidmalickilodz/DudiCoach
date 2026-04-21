@@ -214,6 +214,38 @@ export const pl = {
           other: "Inne",
         },
       },
+      tests: {
+        sectionTitle: "Testy sprawnościowe",
+        loading: "Ładowanie wyników testów...",
+        empty: "Brak wyników testów.",
+        emptyHint: "Dodaj pierwszy wynik, aby rozpocząć śledzenie postępów.",
+        addButton: "Dodaj wynik",
+        creating: "Dodaję...",
+        deleting: "Usuwam...",
+        deleteConfirm: "Potwierdź usunięcie wyniku.",
+        errorGeneric: "Nie udało się zapisać wyniku testu. Spróbuj ponownie.",
+        sportMissingHint:
+          "Sport zawodnika nie został ustawiony. Dostępne są tylko testy ogólne.",
+        field: {
+          testKey: "Rodzaj testu",
+          value: "Wynik",
+          valuePlaceholder: "np. 10.5",
+          testDate: "Data testu",
+          notes: "Notatki",
+          notesPlaceholder: "Opcjonalna notatka",
+        },
+        validation: {
+          required: "To pole jest wymagane.",
+          valueInvalid: "Wynik musi być liczbą od 0 do 100000.",
+          dateInvalid: "Podaj datę w formacie RRRR-MM-DD.",
+          notesTooLong: "Notatka może mieć maksymalnie 1000 znaków.",
+        },
+        trend: {
+          improved: "Poprawa",
+          worsened: "Pogorszenie",
+          unchanged: "Bez zmiany",
+        },
+      },
       plans: {
         generateButton: "Generuj plan AI",
         generating: "Generuję plan...",
