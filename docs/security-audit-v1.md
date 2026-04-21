@@ -415,7 +415,7 @@ Rekomendowana kolejnoÄ‚â€žĂ˘â‚¬ĹˇÄ‚ËĂ˘â€šÂ¬ÄąÄľ
 |---|---|---|---|---|---|---|
 | F1 | GitHub protections | Protected `main` configured; PR-only flow + required checks enforced; secret scanning and push protection confirmed. Single-maintainer exception documented for approvals count. | P0/P1 | Dawid | 2026-04-19 | Closed |
 | F2 | Vercel env security | Preview/Production scope and encrypted env handling verified via Vercel CLI evidence; follow-up only for redeploy discipline runbook. | P0/P1 | Dawid | 2026-04-19 | Closed |
-| F3 | Supabase runtime controls | Runtime verification completed for current `main` scope. `fitness_test_results` is deferred (exists only on branch `codex/us-012-backend-tests`, not in current runtime). | P1 | Dawid | 2026-04-21 | Closed with follow-up |
+| F3 | Supabase runtime controls | Runtime verification completed for active runtime scope, including `fitness_test_results` (table exists, RLS enforced, policies behaviorally effective). | P1 | Dawid | 2026-04-21 | Closed with follow-up |
 
 ### Recommended execution order (next)\n1. Close F2 (Vercel env controls).\n2. Close F3 (Supabase dashboard controls).\n3. Re-run baseline and switch release decision to GO only when P0/P1 are closed.
 
@@ -628,10 +628,9 @@ Source of evidence:
   - `athletes` -> RLS ON + policies present
   - `training_plans` -> RLS ON + policies present
   - `injuries` -> RLS ON + policies present
-- `fitness_test_results` -> `NOT APPLICABLE YET / DEFERRED`
-  - Reason: table exists only on branch `codex/us-012-backend-tests` and is not part of current `main` runtime.
-  - Action: re-verify RLS/runtime after PR US-012 is merged and migration is applied.
-- Current audit status: `PASS` for current runtime scope (`main`) + deferred follow-up for US-012 table.
+- `fitness_test_results` -> `PASS`
+  - Runtime verification (behavioral): table exists, RLS enforcement confirmed, and policies are effective for scoped authenticated access while anonymous access remains denied.
+- Current audit status: `PASS` for current runtime scope (`main`), including `fitness_test_results`.
 
 #### F. Storage
 - Current runtime state: no active buckets / storage usage.
@@ -655,4 +654,3 @@ Open follow-ups (non-blocking for current F3 closure):
 - Enable Leaked Password Protection after plan upgrade (accepted limitation currently).
 - Move from built-in email service to custom SMTP before broader production usage.
 - Minimize Redirect URLs set to strict minimum (production exact + intentional preview wildcard).
-- Re-open mini runtime verification for `fitness_test_results` after US-012 merge + migration apply.
