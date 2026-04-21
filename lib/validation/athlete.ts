@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { pl } from "@/lib/i18n/pl";
+import { TRAINING_GOALS } from "@/lib/constants/training-goals";
 
 const CURRENT_PHASES = [
   "preparatory",
@@ -51,7 +52,7 @@ export const createAthleteSchema = z.object({
     .nullable()
     .optional(),
   current_phase: z.enum(CURRENT_PHASES).nullable().optional(),
-  goal: z.string().nullable().optional(),
+  goal: z.enum(TRAINING_GOALS).nullable().optional(),
   notes: z.string().nullable().optional(),
 });
 

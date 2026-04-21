@@ -1,4 +1,5 @@
 import type { Tables } from "@/lib/supabase/database.types";
+import { pl } from "@/lib/i18n/pl";
 
 type Athlete = Tables<"athletes">;
 
@@ -109,7 +110,20 @@ Format odpowiedzi JSON (scisle przestrzegaj tego schematu):
 // User prompt (dynamic, per athlete)
 // ---------------------------------------------------------------------------
 
+type GoalKey = keyof typeof pl.coach.athlete.goal;
+
+/** Translates an internal goal key to its Polish display label. */
+function goalToLabel(key: string | null | undefined): string | null {
+  if (!key) return null;
+  if (key in pl.coach.athlete.goal) {
+    return pl.coach.athlete.goal[key as GoalKey];
+  }
+  // Fallback for any legacy free-form text that may still exist in the DB
+  return key;
+}
+
 export function buildUserPrompt(athlete: AthleteWithContext): string {
+  const goalDisplay = goalToLabel(athlete.goal);
   const injuriesSection =
     athlete.activeInjuries.length > 0
       ? athlete.activeInjuries
@@ -150,7 +164,7 @@ export function buildUserPrompt(athlete: AthleteWithContext): string {
 - Faza treningowa: ${athlete.current_phase ?? "bazowy"}
 - Dni treningowe/tydzien: ${athlete.training_days_per_week ?? 3}
 - Czas sesji: ${athlete.session_minutes ?? 60} minut
-- Cel: ${athlete.goal ?? "poprawa ogolnej sprawnosci"}
+- Cel: ${goalDisplay ?? "poprawa ogolnej sprawnosci"}
 
 ## Kontuzje (aktywne)
 ${injuriesSection}

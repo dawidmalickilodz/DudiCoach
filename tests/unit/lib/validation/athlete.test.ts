@@ -5,6 +5,7 @@ import {
   createAthleteSchema,
   updateAthleteSchema,
 } from "@/lib/validation/athlete";
+import { TRAINING_GOALS } from "@/lib/constants/training-goals";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -42,7 +43,7 @@ describe("createAthleteSchema", () => {
         training_days_per_week: 5,
         session_minutes: 90,
         current_phase: "base",
-        goal: "Zwiększenie wydolności",
+        goal: "strength",
         notes: "Preferuje trening poranny",
       });
       expect(result.success).toBe(true);
@@ -325,6 +326,39 @@ describe("createAthleteSchema", () => {
 
     it("accepts boundary session_minutes: 20 (minimum)", () => {
       const result = createAthleteSchema.safeParse({ name: "Jan", session_minutes: 20 });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  // ---- goal validation ----
+
+  describe("goal validation", () => {
+    it("accepts all six TRAINING_GOALS keys", () => {
+      for (const key of TRAINING_GOALS) {
+        const result = createAthleteSchema.safeParse({ name: "Jan", goal: key });
+        expect(result.success, `goal '${key}' should be valid`).toBe(true);
+      }
+    });
+
+    it("rejects a free-form goal string (not in allowed enum)", () => {
+      const result = createAthleteSchema.safeParse({
+        name: "Jan",
+        goal: "Zwiększenie masy mięśniowej",
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const errors = result.error.issues.filter((i) => i.path[0] === "goal");
+        expect(errors.length).toBeGreaterThan(0);
+      }
+    });
+
+    it("accepts goal: null (nullable)", () => {
+      const result = createAthleteSchema.safeParse({ name: "Jan", goal: null });
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts goal: undefined (optional, field omitted)", () => {
+      const result = createAthleteSchema.safeParse({ name: "Jan" });
       expect(result.success).toBe(true);
     });
   });

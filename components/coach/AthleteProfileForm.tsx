@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -9,6 +9,13 @@ import { updateAthleteSchema, type UpdateAthleteInput } from "@/lib/validation/a
 import { useAutoSave } from "@/lib/hooks/use-auto-save";
 import { useUpdateAthlete } from "@/lib/hooks/use-athletes";
 import { SPORTS } from "@/lib/constants/sports";
+import { TRAINING_GOALS, type TrainingGoal } from "@/lib/constants/training-goals";
+import {
+  TRAINING_EXPERIENCE_BUCKETS,
+  type TrainingExperienceBucket,
+  dateFromBucket,
+  bucketFromDate,
+} from "@/lib/constants/training-experience";
 import type { Athlete } from "@/lib/api/athletes";
 import LevelDisplay from "./LevelDisplay";
 import SaveStatusIndicator from "./SaveStatusIndicator";
@@ -35,6 +42,14 @@ type CurrentPhase = (typeof CURRENT_PHASES)[number];
 export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps) {
   const updateMutation = useUpdateAthlete(athlete.id);
 
+  // Bucket is separate local state because training_start_date stores an ISO
+  // date, not the bucket enum. The bucket drives setValue("training_start_date")
+  // so LevelDisplay and auto-save stay in sync through the existing watch().
+  const [experienceBucket, setExperienceBucket] =
+    useState<TrainingExperienceBucket | null>(() =>
+      bucketFromDate(athlete.training_start_date),
+    );
+
   const form = useForm<UpdateAthleteInput>({
     resolver: zodResolver(updateAthleteSchema),
     defaultValues: buildDefaultValues(athlete),
@@ -47,12 +62,15 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
     formState,
     setError,
     reset,
+    setValue,
   } = form;
 
-  // Re-populate the form when the athlete changes (e.g. navigating to a different athlete).
-  // We only depend on athlete.id to avoid re-resetting on every server cache refresh.
+  // Re-populate the form and bucket when the athlete changes (e.g. navigating
+  // to a different athlete). Both reset and bucket must update together so
+  // the bucket select never shows stale data after navigation.
   useEffect(() => {
     reset(buildDefaultValues(athlete));
+    setExperienceBucket(bucketFromDate(athlete.training_start_date));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [athlete.id]);
 
@@ -171,18 +189,41 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
           />
         </FormField>
 
-        {/* Training start date */}
+        {/* Training seniority — bucket select; drives training_start_date via setValue */}
         <FormField
-          id="training_start_date"
-          label={pl.coach.athlete.profile.trainingStartDate}
+          id="training_experience_bucket"
+          label={pl.coach.athlete.profile.trainingSeniority}
           error={errors.training_start_date?.message}
         >
-          <input
-            id="training_start_date"
-            type="date"
-            className="border-border bg-input text-foreground rounded-input w-48 border px-3 py-2 text-sm"
-            {...register("training_start_date")}
-          />
+          <select
+            id="training_experience_bucket"
+            value={experienceBucket ?? ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") {
+                setExperienceBucket(null);
+                setValue("training_start_date", undefined, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              } else {
+                const bucket = raw as TrainingExperienceBucket;
+                setExperienceBucket(bucket);
+                setValue("training_start_date", dateFromBucket(bucket), {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }
+            }}
+            className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm"
+          >
+            <option value="">—</option>
+            {TRAINING_EXPERIENCE_BUCKETS.map((bucket) => (
+              <option key={bucket} value={bucket}>
+                {pl.coach.athlete.trainingSeniority[bucket]}
+              </option>
+            ))}
+          </select>
         </FormField>
 
         {/* Level display (read-only, reacts to training_start_date) */}
@@ -244,18 +285,27 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
           </select>
         </FormField>
 
-        {/* Goal */}
+        {/* Goal — controlled dropdown; unknown/legacy values default to "—" */}
         <FormField
           id="goal"
           label={pl.coach.athlete.profile.goal}
           error={errors.goal?.message}
         >
-          <textarea
+          <select
             id="goal"
-            rows={3}
-            className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm resize-y"
-            {...register("goal")}
-          />
+            className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm"
+            {...register("goal", {
+              setValueAs: (value: unknown) =>
+                value === "" ? undefined : value,
+            })}
+          >
+            <option value="">—</option>
+            {TRAINING_GOALS.map((key) => (
+              <option key={key} value={key}>
+                {pl.coach.athlete.goal[key]}
+              </option>
+            ))}
+          </select>
         </FormField>
 
         {/* Notes */}
@@ -281,6 +331,15 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
 // ---------------------------------------------------------------------------
 
 function buildDefaultValues(athlete: Athlete): UpdateAthleteInput {
+  // Guard goal: only pass the stored value if it matches a known key.
+  // Legacy free-form text maps to undefined so it is treated as "not set" in
+  // the form — the DB value is preserved until the coach actively picks a new
+  // option (because undefined is omitted from the PATCH JSON payload).
+  const storedGoal = athlete.goal;
+  const validGoal = TRAINING_GOALS.includes(storedGoal as TrainingGoal)
+    ? (storedGoal as TrainingGoal)
+    : undefined;
+
   return {
     name: athlete.name ?? "",
     sport: athlete.sport ?? undefined,
@@ -291,7 +350,7 @@ function buildDefaultValues(athlete: Athlete): UpdateAthleteInput {
     training_days_per_week: athlete.training_days_per_week ?? undefined,
     session_minutes: athlete.session_minutes ?? undefined,
     current_phase: (athlete.current_phase as CurrentPhase | null) ?? undefined,
-    goal: athlete.goal ?? undefined,
+    goal: validGoal,
     notes: athlete.notes ?? undefined,
   };
 }
