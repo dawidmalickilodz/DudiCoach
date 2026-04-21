@@ -415,7 +415,7 @@ Rekomendowana kolejnoÄ‚â€žĂ˘â‚¬ĹˇÄ‚ËĂ˘â€šÂ¬ÄąÄľ
 |---|---|---|---|---|---|---|
 | F1 | GitHub protections | Protected `main` configured; PR-only flow + required checks enforced; secret scanning and push protection confirmed. Single-maintainer exception documented for approvals count. | P0/P1 | Dawid | 2026-04-19 | Closed |
 | F2 | Vercel env security | Preview/Production scope and encrypted env handling verified via Vercel CLI evidence; follow-up only for redeploy discipline runbook. | P0/P1 | Dawid | 2026-04-19 | Closed |
-| F3 | Supabase runtime controls | Missing dashboard confirmation of Security Advisor and Storage access model. | P1 | Dawid | 2026-04-20 | Open |
+| F3 | Supabase runtime controls | Runtime verification completed for active runtime scope, including `fitness_test_results` (table exists, RLS enforced, policies behaviorally effective). | P1 | Dawid | 2026-04-21 | Closed with follow-up |
 
 ### Recommended execution order (next)\n1. Close F2 (Vercel env controls).\n2. Close F3 (Supabase dashboard controls).\n3. Re-run baseline and switch release decision to GO only when P0/P1 are closed.
 
@@ -595,3 +595,62 @@ Required next actions to close F3:
 2. Verify Security Advisor findings and capture status in this audit.
 3. Verify Storage buckets configuration (public/private, policy model, signed URL TTL).
 4. Update F3 row from `Open` to `Closed` with concrete evidence links/screenshots/CLI output.
+
+### 20) F3 runtime verification update (2026-04-21)
+
+Source of evidence:
+- Manual Supabase Dashboard verification reported by project owner (this thread).
+- Repository cross-check for migrations and private-data tables.
+
+#### A. Security Advisor
+- Observed status: `Errors = 0`, `Warnings = 1`.
+- Warning: `Leaked Password Protection Disabled`.
+- Classification: `DO POPRAWY` (accepted limitation).
+- Rationale: leaked-password protection is plan-dependent (Pro+).
+- Follow-up: enable after plan upgrade.
+
+#### B. Auth URL configuration
+- Site URL: confirmed as configured correctly.
+- Redirect URLs: explicit decision recorded (keep current runtime-safe set; minimize later to prod exact URL + one intentional preview wildcard).
+- Current audit status: `PASS` (with follow-up hardening).
+
+#### C. Auth providers
+- Active provider set: Email only (as intended).
+- Current audit status: `PASS`.
+
+#### D. SMTP
+- Current mode: built-in email service.
+- Current audit status: `DO POPRAWY` (acceptable for current stage, custom SMTP required before broader production rollout).
+
+#### E. Runtime RLS confirmation (closure gate)
+- Runtime `main` private tables confirmed in scope:
+  - `profiles` -> RLS ON + policies present
+  - `athletes` -> RLS ON + policies present
+  - `training_plans` -> RLS ON + policies present
+  - `injuries` -> RLS ON + policies present
+- `fitness_test_results` -> `PASS`
+  - Runtime verification (behavioral): table exists, RLS enforcement confirmed, and policies are effective for scoped authenticated access while anonymous access remains denied.
+- Current audit status: `PASS` for current runtime scope (`main`), including `fitness_test_results`.
+
+#### F. Storage
+- Current runtime state: no active buckets / storage usage.
+- Current audit status: `PASS (current state)`.
+- Follow-up: re-verify before enabling uploads/private files.
+
+#### G. Access review
+- Project admin access: single owner account.
+- Current audit status: `PASS`.
+
+### 21) F3 closure decision (2026-04-21)
+
+Decision: `Closed with follow-up`.
+
+Closure basis:
+1. Runtime RLS confirmed for current `main` private-table scope (`profiles`, `athletes`, `training_plans`, `injuries`).
+2. Redirect URL decision is explicitly documented (accepted current state, minimization tracked as follow-up).
+3. Security Advisor/Auth/Storage/Access checks are documented with explicit status.
+
+Open follow-ups (non-blocking for current F3 closure):
+- Enable Leaked Password Protection after plan upgrade (accepted limitation currently).
+- Move from built-in email service to custom SMTP before broader production usage.
+- Minimize Redirect URLs set to strict minimum (production exact + intentional preview wildcard).
