@@ -10,6 +10,7 @@ import {
   computeAthleteLevel,
   computeTrainingMonths,
   type AthleteWithContext,
+  type InjuryContext,
 } from "@/lib/ai/prompts/plan-generation";
 import { checkRateLimit } from "@/lib/ai/rate-limiter";
 import { createClient } from "@/lib/supabase/server";
@@ -104,6 +105,28 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     );
   }
 
+  // --- Fetch active injuries for plan context (best-effort) ---
+  // Graceful degradation: if this query fails, generation proceeds with an
+  // empty injuries list. Plan quality degrades but the coach still gets a plan.
+  let activeInjuries: InjuryContext[] = [];
+  const { data: injuriesData, error: injuriesError } = await supabase
+    .from("injuries")
+    .select("name, severity, notes")
+    .eq("athlete_id", id)
+    .in("status", ["active", "healing"]);
+
+  if (injuriesError) {
+    console.error("[POST /plans] Failed to fetch injuries for context", {
+      code: injuriesError.code,
+    });
+  } else {
+    activeInjuries = (injuriesData ?? []).map((i) => ({
+      name: i.name,
+      severity: String(i.severity),
+      notes: i.notes ?? null,
+    }));
+  }
+
   // --- Build prompts ---
   const trainingMonths = computeTrainingMonths(athlete.training_start_date);
   const level = computeAthleteLevel(trainingMonths);
@@ -112,7 +135,7 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     ...athlete,
     trainingMonths,
     level,
-    activeInjuries: [],
+    activeInjuries,
     diagnosticFindings: [],
     recentProgressions: [],
   };
