@@ -31,7 +31,7 @@ function makeAthlete(): Athlete {
     training_days_per_week: 4,
     session_minutes: 60,
     current_phase: "base",
-    goal: "Poprawa szybkosci",
+    goal: "running",
     notes: "Brak",
     share_code: "ABC234",
     share_active: true,

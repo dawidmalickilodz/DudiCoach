@@ -10,6 +10,7 @@ interface AthleteProfileViewProps {
 
 type SportKey = keyof typeof pl.coach.athlete.sport;
 type PhaseKey = keyof typeof pl.coach.athlete.phase;
+type GoalKey = keyof typeof pl.coach.athlete.goal;
 
 /**
  * Read-only profile view shown on the athlete panel.
@@ -32,6 +33,12 @@ export default function AthleteProfileView({
     phaseKey && phaseKey in pl.coach.athlete.phase
       ? pl.coach.athlete.phase[phaseKey]
       : athlete.current_phase;
+
+  const goalKey = athlete.goal as GoalKey | null;
+  const goalLabel =
+    goalKey && goalKey in pl.coach.athlete.goal
+      ? pl.coach.athlete.goal[goalKey]
+      : athlete.goal;
 
   const profile = pl.coach.athlete.profile;
 
@@ -64,7 +71,7 @@ export default function AthleteProfileView({
       <LevelDisplay trainingStartDate={athlete.training_start_date} />
 
       {athlete.goal && (
-        <Field label={profile.goal} value={athlete.goal} multiline />
+        <Field label={profile.goal} value={goalLabel} multiline />
       )}
 
       {athlete.notes && (
