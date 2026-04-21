@@ -1,49 +1,51 @@
-import { getFitnessTestsForSport } from "@/lib/constants/fitness-tests";
-import type { Sport } from "@/lib/constants/sports";
-import { pl } from "@/lib/i18n/pl";
+"use client";
+
+import {
+  getFitnessTestsForSport,
+  type FitnessTestDefinition,
+} from "@/lib/constants/fitness-tests";
+import { SPORTS, type Sport } from "@/lib/constants/sports";
 
 interface TestSelectorProps {
+  id: string;
   sport: string | null;
   value: string;
-  onChange: (key: string) => void;
   disabled?: boolean;
-}
-
-function toSport(value: string | null): Sport | null {
-  if (value === null) return null;
-  return value as Sport;
+  onChange: (value: string) => void;
 }
 
 export default function TestSelector({
+  id,
   sport,
   value,
-  onChange,
   disabled = false,
+  onChange,
 }: TestSelectorProps) {
-  const tests = getFitnessTestsForSport(toSport(sport));
-  const hasSportSpecific = sport !== null && tests.some((t) => t.sports !== "all");
-  const showSportNote = sport === null || !hasSportSpecific;
+  const normalizedSport = normalizeSport(sport);
+  const options = getFitnessTestsForSport(normalizedSport);
 
   return (
-    <div className="space-y-1.5">
-      <select
-        id="test-selector"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {tests.map((test) => (
-          <option key={test.key} value={test.key}>
-            {test.name}
-          </option>
-        ))}
-      </select>
-      {showSportNote && (
-        <p className="text-xs text-muted-foreground">
-          {pl.coach.athlete.tests.sportNotSet}
-        </p>
-      )}
-    </div>
+    <select
+      id={id}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value)}
+      className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {options.map((test) => (
+        <option key={test.key} value={test.key}>
+          {buildOptionLabel(test)}
+        </option>
+      ))}
+    </select>
   );
+}
+
+function normalizeSport(value: string | null): Sport | null {
+  if (value === null) return null;
+  return (SPORTS as readonly string[]).includes(value) ? (value as Sport) : null;
+}
+
+function buildOptionLabel(test: FitnessTestDefinition): string {
+  return `${test.name} (${test.unit})`;
 }

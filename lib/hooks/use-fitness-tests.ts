@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createFitnessTest,
   deleteFitnessTest,
-  getFitnessTests,
+  fetchFitnessTests,
   fitnessTestKeys,
 } from "@/lib/api/fitness-tests";
 import type { CreateFitnessTestResultInput } from "@/lib/validation/fitness-test";
@@ -13,12 +13,13 @@ import type { CreateFitnessTestResultInput } from "@/lib/validation/fitness-test
 export function useFitnessTests(athleteId: string) {
   return useQuery({
     queryKey: fitnessTestKeys.list(athleteId),
-    queryFn: () => getFitnessTests(athleteId),
+    queryFn: () => fetchFitnessTests(athleteId),
   });
 }
 
 export function useCreateFitnessTest(athleteId: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (input: CreateFitnessTestResultInput) =>
       createFitnessTest(athleteId, input),
@@ -36,6 +37,7 @@ interface DeleteFitnessTestMutationInput {
 
 export function useDeleteFitnessTest(athleteId: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({ testId }: DeleteFitnessTestMutationInput) =>
       deleteFitnessTest(athleteId, testId),

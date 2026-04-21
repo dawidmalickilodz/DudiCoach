@@ -1,38 +1,65 @@
+"use client";
+
+import type { FitnessTestDirection } from "@/lib/constants/fitness-tests";
 import { pl } from "@/lib/i18n/pl";
 
 interface TrendIndicatorProps {
-  direction: "higher_is_better" | "lower_is_better";
-  current: number;
-  previous: number;
-  unit: string;
+  currentValue: number;
+  previousValue: number;
+  direction: FitnessTestDirection;
 }
 
 export default function TrendIndicator({
+  currentValue,
+  previousValue,
   direction,
-  current,
-  previous,
-  unit,
 }: TrendIndicatorProps) {
-  const delta = current - previous;
+  const delta = currentValue - previousValue;
 
-  if (delta === 0) {
-    return (
-      <span className="text-xs text-muted-foreground">
-        {"→ "}{pl.coach.athlete.tests.trend.flat}
-      </span>
-    );
-  }
+  if (!Number.isFinite(delta)) return null;
 
-  const isImprovement =
-    direction === "higher_is_better" ? delta > 0 : delta < 0;
-
-  const colorClass = isImprovement ? "text-success" : "text-destructive";
-  const arrow = delta > 0 ? "↑" : "↓";
-  const absDelta = Math.abs(delta);
+  const { marker, toneClass, srLabel } = getTrendPresentation(delta, direction);
+  const formattedDelta = formatDelta(Math.abs(delta));
 
   return (
-    <span className={`text-xs font-medium ${colorClass}`}>
-      {arrow} {absDelta} {unit}
+    <span
+      className={`inline-flex items-center gap-1 text-xs font-medium ${toneClass}`}
+      aria-label={srLabel}
+      title={srLabel}
+    >
+      <span aria-hidden="true">{marker}</span>
+      <span>{formattedDelta}</span>
     </span>
   );
+}
+
+function getTrendPresentation(
+  delta: number,
+  direction: FitnessTestDirection,
+): {
+  marker: "+" | "-" | "=";
+  toneClass: string;
+  srLabel: string;
+} {
+  if (delta === 0) {
+    return {
+      marker: "=",
+      toneClass: "text-muted-foreground",
+      srLabel: pl.coach.athlete.tests.trend.unchanged,
+    };
+  }
+
+  const improved = direction === "higher_is_better" ? delta > 0 : delta < 0;
+
+  return {
+    marker: delta > 0 ? "+" : "-",
+    toneClass: improved ? "text-emerald-500" : "text-destructive",
+    srLabel: improved
+      ? pl.coach.athlete.tests.trend.improved
+      : pl.coach.athlete.tests.trend.worsened,
+  };
+}
+
+function formatDelta(value: number): string {
+  return Number.isInteger(value) ? value.toString() : value.toFixed(2);
 }

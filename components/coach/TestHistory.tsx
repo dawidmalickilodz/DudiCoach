@@ -1,147 +1,127 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { getFitnessTestByKey } from "@/lib/constants/fitness-tests";
 import { pl } from "@/lib/i18n/pl";
-import { useDeleteFitnessTest } from "@/lib/hooks/use-fitness-tests";
 import type { FitnessTestResult } from "@/lib/api/fitness-tests";
 import TrendIndicator from "./TrendIndicator";
 
 interface TestHistoryProps {
-  athleteId: string;
   results: FitnessTestResult[];
+  isDeleting: boolean;
+  deletingId: string | null;
+  onDelete: (testId: string) => void;
 }
 
-export default function TestHistory({ athleteId, results }: TestHistoryProps) {
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const deleteMutation = useDeleteFitnessTest(athleteId);
+export default function TestHistory({
+  results,
+  isDeleting,
+  deletingId,
+  onDelete,
+}: TestHistoryProps) {
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
-  if (results.length === 0) {
-    return (
-      <div className="rounded-card border border-border bg-card px-4 py-3 space-y-2">
-        <p className="text-sm text-muted-foreground">
-          {pl.coach.athlete.tests.empty}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {pl.coach.athlete.tests.emptyHint}
-        </p>
-      </div>
-    );
-  }
-
-  async function handleConfirmDelete(testId: string) {
-    setDeleteError(null);
-    try {
-      await deleteMutation.mutateAsync({ testId });
-      setPendingDeleteId(null);
-    } catch {
-      setDeleteError(pl.common.error);
-    }
-  }
-
-  function handleCancelDelete() {
-    setPendingDeleteId(null);
-    setDeleteError(null);
-  }
+  const sortedResults = useMemo(
+    () =>
+      [...results].sort((a, b) => {
+        const byDate = b.test_date.localeCompare(a.test_date);
+        if (byDate !== 0) return byDate;
+        return b.created_at.localeCompare(a.created_at);
+      }),
+    [results],
+  );
 
   return (
     <div className="space-y-3">
-      {results.map((result, index) => {
-        const definition = getFitnessTestByKey(result.test_key);
-        const testName = definition?.name ?? result.test_key;
-        const unit = definition?.unit ?? "";
-        const direction = definition?.direction ?? "higher_is_better";
-
-        // Find the previous result with same test_key: the next item in the
-        // sorted-by-date-DESC array that shares the same test_key.
-        const previousResult = results
+      {sortedResults.map((result, index) => {
+        const test = getFitnessTestByKey(result.test_key);
+        const previousResult = sortedResults
           .slice(index + 1)
-          .find((r) => r.test_key === result.test_key);
-
-        const isConfirming = pendingDeleteId === result.id;
-        const isDeleting = isConfirming && deleteMutation.isPending;
+          .find((older) => older.test_key === result.test_key);
+        const isConfirming = confirmingId === result.id;
+        const isRowDeleting = deletingId === result.id;
 
         return (
-          <div
+          <article
             key={result.id}
-            className="rounded-card border border-border bg-card px-4 py-3 space-y-2"
+            className="rounded-card border border-border bg-card p-4"
           >
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium text-foreground">{testName}</p>
-                <p className="text-xs text-muted-foreground">{result.test_date}</p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {test?.name ?? result.test_key}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatDate(result.test_date)}
+                </p>
               </div>
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-base font-semibold text-foreground">
-                  {result.value} {unit}
-                </span>
-                {previousResult !== undefined && definition !== undefined && (
-                  <TrendIndicator
-                    direction={direction}
-                    current={result.value}
-                    previous={previousResult.value}
-                    unit={unit}
-                  />
+
+              <div className="text-right">
+                <p className="text-sm font-bold text-foreground">
+                  {result.value} {test?.unit ?? ""}
+                </p>
+                {previousResult && test && (
+                  <div className="mt-1">
+                    <TrendIndicator
+                      currentValue={result.value}
+                      previousValue={previousResult.value}
+                      direction={test.direction}
+                    />
+                  </div>
                 )}
               </div>
             </div>
 
             {result.notes && (
-              <p className="text-xs text-muted-foreground">{result.notes}</p>
+              <p className="mt-3 text-xs text-muted-foreground">{result.notes}</p>
             )}
 
-            {!isConfirming && (
-              <div className="flex justify-end">
+            <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+              {!isConfirming ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    setPendingDeleteId(result.id);
-                    setDeleteError(null);
-                  }}
-                  className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                  onClick={() => setConfirmingId(result.id)}
+                  disabled={isDeleting}
+                  className="rounded-input border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {pl.common.delete}
                 </button>
-              </div>
-            )}
-
-            {isConfirming && (
-              <div className="space-y-2">
-                {deleteError && (
-                  <p role="alert" className="text-xs text-destructive">
-                    {deleteError}
-                  </p>
-                )}
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <p className="text-xs text-muted-foreground mr-auto">
+              ) : (
+                <>
+                  <span className="text-xs text-muted-foreground">
                     {pl.coach.athlete.tests.deleteConfirm}
-                  </p>
+                  </span>
                   <button
                     type="button"
-                    onClick={handleCancelDelete}
+                    onClick={() => onDelete(result.id)}
                     disabled={isDeleting}
-                    className="rounded-input border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-input bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {pl.coach.athlete.tests.cancelDelete}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleConfirmDelete(result.id)}
-                    disabled={isDeleting}
-                    className="rounded-input bg-destructive px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isDeleting
+                    {isRowDeleting
                       ? pl.coach.athlete.tests.deleting
-                      : pl.coach.athlete.tests.confirmDelete}
+                      : pl.common.confirm}
                   </button>
-                </div>
-              </div>
-            )}
-          </div>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingId(null)}
+                    disabled={isDeleting}
+                    className="rounded-input border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {pl.common.cancel}
+                  </button>
+                </>
+              )}
+            </div>
+          </article>
         );
       })}
     </div>
   );
+}
+
+function formatDate(value: string): string {
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString("pl-PL");
 }

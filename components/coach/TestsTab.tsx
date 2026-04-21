@@ -1,207 +1,216 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 import { getFitnessTestsForSport } from "@/lib/constants/fitness-tests";
-import type { Sport } from "@/lib/constants/sports";
+import { SPORTS, type Sport } from "@/lib/constants/sports";
 import { pl } from "@/lib/i18n/pl";
-import {
-  createFitnessTestResultSchema,
-  type CreateFitnessTestResultInput,
-} from "@/lib/validation/fitness-test";
-import { useFitnessTests, useCreateFitnessTest } from "@/lib/hooks/use-fitness-tests";
-import TestSelector from "./TestSelector";
+import { useCreateFitnessTest, useDeleteFitnessTest, useFitnessTests } from "@/lib/hooks/use-fitness-tests";
+import type { Athlete } from "@/lib/api/athletes";
+import type { CreateFitnessTestResultInput } from "@/lib/validation/fitness-test";
 import TestHistory from "./TestHistory";
+import TestSelector from "./TestSelector";
 
 interface TestsTabProps {
-  athlete: {
-    id: string;
-    sport: string | null;
-  };
+  athlete: Athlete;
 }
 
-function todayDateString(): string {
+const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+const createTestFormSchema = z.object({
+  test_key: z.string().trim().min(1, pl.coach.athlete.tests.validation.required),
+  value: z
+    .number()
+    .refine(
+      (value) => Number.isFinite(value) && value >= 0 && value <= 100000,
+      pl.coach.athlete.tests.validation.valueInvalid,
+    ),
+  test_date: z
+    .string()
+    .regex(isoDateRegex, pl.coach.athlete.tests.validation.dateInvalid),
+  notes: z
+    .string()
+    .max(1000, pl.coach.athlete.tests.validation.notesTooLong)
+    .optional(),
+});
+
+type CreateTestFormValues = z.infer<typeof createTestFormSchema>;
+
+function todayDateString() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function defaultTestKey(sport: string | null): string {
-  const tests = getFitnessTestsForSport(sport as Sport | null);
-  return tests[0]?.key ?? "";
-}
-
 export default function TestsTab({ athlete }: TestsTabProps) {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  // Mirror the form's test_key in local state so TestSelector is controlled
-  // without calling watch(), which triggers the react-hooks/incompatible-library rule.
-  const [selectedTestKey, setSelectedTestKey] = useState<string>(
-    () => defaultTestKey(athlete.sport),
-  );
-
   const testsQuery = useFitnessTests(athlete.id);
   const createMutation = useCreateFitnessTest(athlete.id);
+  const deleteMutation = useDeleteFitnessTest(athlete.id);
 
+  const normalizedSport = normalizeSport(athlete.sport);
+  const availableTests = useMemo(
+    () => getFitnessTestsForSport(normalizedSport),
+    [normalizedSport],
+  );
+  const firstAvailableTestKey = availableTests[0]?.key ?? "";
+
+  const form = useForm<CreateTestFormValues>({
+    resolver: zodResolver(createTestFormSchema),
+    mode: "onChange",
+    defaultValues: {
+      test_key: firstAvailableTestKey,
+      value: undefined as unknown as number,
+      test_date: todayDateString(),
+      notes: "",
+    },
+  });
+
+  const { register, formState, setValue, reset, resetField, handleSubmit, control } = form;
   const results = testsQuery.data ?? [];
-  const isLoading = testsQuery.isLoading && results.length === 0;
-  const hasError = Boolean(testsQuery.error) && results.length === 0;
+  const selectedTestKey = useWatch({ control, name: "test_key" });
 
-  const { register, handleSubmit, formState, setValue, reset } =
-    useForm<CreateFitnessTestResultInput>({
-      resolver: zodResolver(createFitnessTestResultSchema),
-      mode: "onChange",
-      defaultValues: {
-        test_key: selectedTestKey,
-        value: 0,
-        test_date: todayDateString(),
-        notes: undefined,
-      },
-    });
+  useEffect(() => {
+    if (firstAvailableTestKey.length === 0) return;
 
-  const isSubmitting = createMutation.isPending;
-
-  function handleTestKeyChange(key: string) {
-    setSelectedTestKey(key);
-    setValue("test_key", key, { shouldValidate: true });
-  }
+    const current = form.getValues("test_key");
+    const stillAvailable = availableTests.some((item) => item.key === current);
+    if (!stillAvailable) {
+      setValue("test_key", firstAvailableTestKey, { shouldValidate: true });
+    }
+  }, [availableTests, firstAvailableTestKey, form, setValue]);
 
   const onSubmit = handleSubmit(async (values) => {
-    await createMutation.mutateAsync(values);
-    // Keep the selected test but reset numeric/date fields
+    const payload: CreateFitnessTestResultInput = {
+      test_key: values.test_key,
+      value: values.value,
+      test_date: values.test_date,
+      notes: values.notes?.trim() ? values.notes.trim() : undefined,
+    };
+    await createMutation.mutateAsync(payload);
     reset({
       test_key: values.test_key,
-      value: 0,
+      value: undefined as unknown as number,
       test_date: todayDateString(),
-      notes: undefined,
+      notes: "",
     });
-    setIsFormOpen(false);
+    resetField("value");
   });
+
+  const isMutating = createMutation.isPending || deleteMutation.isPending;
+  const hasError = Boolean(testsQuery.error);
+  const hasResults = results.length > 0;
+  const showInitialLoading = testsQuery.isLoading && !hasResults;
+  const showEmpty = !showInitialLoading && !hasError && !hasResults;
+
+  async function handleRetry() {
+    await testsQuery.refetch();
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-foreground">
-          {pl.coach.athlete.tests.sectionTitle}
-        </h2>
-        <button
-          type="button"
-          onClick={() => setIsFormOpen((prev) => !prev)}
-          disabled={isSubmitting}
-          className="rounded-input bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isFormOpen
-            ? pl.coach.athlete.tests.closeForm
-            : pl.coach.athlete.tests.addResult}
-        </button>
-      </div>
+      <h2 className="text-base font-semibold text-foreground">
+        {pl.coach.athlete.tests.sectionTitle}
+      </h2>
 
-      {isFormOpen && (
-        <form
-          onSubmit={onSubmit}
-          className="rounded-card border border-border bg-card p-4 space-y-4"
-          aria-busy={isSubmitting}
-        >
-          <fieldset disabled={isSubmitting} className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground">
-              {pl.coach.athlete.tests.formTitle}
-            </h3>
-
+      <form
+        onSubmit={onSubmit}
+        className="rounded-card border border-border bg-card p-4 space-y-4"
+        aria-busy={isMutating}
+      >
+        <fieldset disabled={isMutating} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <FormField
-              id="test-selector"
-              label={pl.coach.athlete.tests.field.testName}
+              id="fitness-test-key"
+              label={pl.coach.athlete.tests.field.testKey}
               error={formState.errors.test_key?.message}
             >
               <TestSelector
+                id="fitness-test-key"
                 sport={athlete.sport}
-                value={selectedTestKey}
-                onChange={handleTestKeyChange}
-                disabled={isSubmitting}
+                value={selectedTestKey ?? firstAvailableTestKey}
+                disabled={isMutating}
+                onChange={(value) =>
+                  setValue("test_key", value, { shouldValidate: true })
+                }
               />
             </FormField>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                id="test-value"
-                label={pl.coach.athlete.tests.field.value}
-                error={formState.errors.value?.message}
-              >
-                <input
-                  id="test-value"
-                  type="number"
-                  step="any"
-                  min="0"
-                  className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                  {...register("value", {
-                    setValueAs: (v: unknown) => {
-                      const n = Number(v);
-                      return isNaN(n) ? 0 : n;
-                    },
-                  })}
-                />
-              </FormField>
-
-              <FormField
-                id="test-date"
-                label={pl.coach.athlete.tests.field.date}
-                error={formState.errors.test_date?.message}
-              >
-                <input
-                  id="test-date"
-                  type="date"
-                  className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                  {...register("test_date")}
-                />
-              </FormField>
-            </div>
-
             <FormField
-              id="test-notes"
-              label={pl.coach.athlete.tests.field.notes}
-              error={formState.errors.notes?.message}
+              id="fitness-test-value"
+              label={pl.coach.athlete.tests.field.value}
+              error={formState.errors.value?.message}
             >
-              <textarea
-                id="test-notes"
-                rows={2}
-                className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm resize-y disabled:cursor-not-allowed disabled:opacity-60"
-                {...register("notes", {
-                  setValueAs: (v: unknown) =>
-                    v === "" || v === null || v === undefined
-                      ? undefined
-                      : String(v),
+              <input
+                id="fitness-test-value"
+                type="number"
+                step="0.01"
+                className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                placeholder={pl.coach.athlete.tests.field.valuePlaceholder}
+                {...register("value", {
+                  setValueAs: (value) =>
+                    value === "" ? Number.NaN : Number(value),
                 })}
               />
             </FormField>
+          </div>
 
-            {createMutation.error && (
-              <p role="alert" className="text-sm text-destructive">
-                {pl.common.error}
-              </p>
-            )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              id="fitness-test-date"
+              label={pl.coach.athlete.tests.field.testDate}
+              error={formState.errors.test_date?.message}
+            >
+              <input
+                id="fitness-test-date"
+                type="date"
+                className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                {...register("test_date")}
+              />
+            </FormField>
 
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setIsFormOpen(false)}
-                disabled={isSubmitting}
-                className="rounded-input border border-border px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {pl.common.cancel}
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="rounded-input bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSubmitting
-                  ? pl.coach.athlete.tests.saving
-                  : pl.coach.athlete.tests.saveResult}
-              </button>
-            </div>
-          </fieldset>
-        </form>
+            <FormField
+              id="fitness-test-notes"
+              label={pl.coach.athlete.tests.field.notes}
+              error={formState.errors.notes?.message}
+            >
+              <input
+                id="fitness-test-notes"
+                type="text"
+                className="border-border bg-input text-foreground rounded-input w-full border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                placeholder={pl.coach.athlete.tests.field.notesPlaceholder}
+                {...register("notes")}
+              />
+            </FormField>
+          </div>
+
+          <div className="flex items-center justify-end">
+            <button
+              type="submit"
+              disabled={isMutating}
+              className="rounded-input bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {createMutation.isPending
+                ? pl.coach.athlete.tests.creating
+                : pl.coach.athlete.tests.addButton}
+            </button>
+          </div>
+        </fieldset>
+      </form>
+
+      {normalizedSport === null && (
+        <p className="text-xs text-muted-foreground">
+          {pl.coach.athlete.tests.sportMissingHint}
+        </p>
       )}
 
-      {isLoading && (
+      {createMutation.error && (
+        <p role="alert" className="text-sm text-destructive">
+          {pl.coach.athlete.tests.errorGeneric}
+        </p>
+      )}
+
+      {showInitialLoading && (
         <div className="rounded-card border border-border bg-card px-4 py-3">
           <p className="text-sm text-muted-foreground">
             {pl.coach.athlete.tests.loading}
@@ -209,16 +218,44 @@ export default function TestsTab({ athlete }: TestsTabProps) {
         </div>
       )}
 
-      {hasError && (
-        <div className="rounded-card border border-destructive/30 bg-card px-4 py-3">
+      {hasError && !hasResults && (
+        <div className="rounded-card border border-destructive/30 bg-card px-4 py-3 space-y-3">
           <p role="alert" className="text-sm text-destructive">
             {pl.coach.athlete.tests.errorGeneric}
+          </p>
+          <button
+            type="button"
+            onClick={handleRetry}
+            disabled={testsQuery.isFetching}
+            className="rounded-input border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-input disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {testsQuery.isFetching ? pl.common.loading : pl.common.tryAgain}
+          </button>
+        </div>
+      )}
+
+      {showEmpty && (
+        <div className="rounded-card border border-border bg-card px-4 py-3 space-y-2">
+          <p className="text-sm text-muted-foreground">{pl.coach.athlete.tests.empty}</p>
+          <p className="text-xs text-muted-foreground">
+            {pl.coach.athlete.tests.emptyHint}
           </p>
         </div>
       )}
 
-      {!isLoading && !hasError && (
-        <TestHistory athleteId={athlete.id} results={results} />
+      {hasResults && (
+        <TestHistory
+          results={results}
+          isDeleting={deleteMutation.isPending}
+          deletingId={deleteMutation.variables?.testId ?? null}
+          onDelete={(testId) => deleteMutation.mutate({ testId })}
+        />
+      )}
+
+      {deleteMutation.error && (
+        <p role="alert" className="text-sm text-destructive">
+          {pl.coach.athlete.tests.errorGeneric}
+        </p>
       )}
     </div>
   );
@@ -234,22 +271,20 @@ interface FormFieldProps {
 function FormField({ id, label, error, children }: FormFieldProps) {
   return (
     <div>
-      <label
-        htmlFor={id}
-        className="mb-1.5 block text-sm font-medium text-foreground"
-      >
+      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-foreground">
         {label}
       </label>
       {children}
       {error && (
-        <p
-          id={`${id}-error`}
-          role="alert"
-          className="mt-1.5 text-xs text-destructive"
-        >
+        <p id={`${id}-error`} role="alert" className="mt-1.5 text-xs text-destructive">
           {error}
         </p>
       )}
     </div>
   );
+}
+
+function normalizeSport(value: string | null): Sport | null {
+  if (value === null) return null;
+  return (SPORTS as readonly string[]).includes(value) ? (value as Sport) : null;
 }

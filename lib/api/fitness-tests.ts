@@ -4,20 +4,19 @@ import type { CreateFitnessTestResultInput } from "@/lib/validation/fitness-test
 export type FitnessTestResult = Tables<"fitness_test_results">;
 
 export const fitnessTestKeys = {
-  all: (athleteId: string) => ["athletes", athleteId, "fitnessTests"] as const,
+  all: (athleteId: string) => ["athletes", athleteId, "fitness-tests"] as const,
   list: (athleteId: string) =>
     [...fitnessTestKeys.all(athleteId), "list"] as const,
 };
 
-export async function getFitnessTests(
-  athleteId: string,
-): Promise<FitnessTestResult[]> {
+export async function fetchFitnessTests(athleteId: string): Promise<FitnessTestResult[]> {
   const response = await fetch(`/api/athletes/${athleteId}/tests`);
   if (!response.ok) {
     throw new Error("Failed to fetch fitness tests");
   }
+
   const json = (await response.json()) as { data: FitnessTestResult[] };
-  return json.data;
+  return json.data ?? [];
 }
 
 export async function createFitnessTest(
@@ -43,10 +42,9 @@ export async function deleteFitnessTest(
   athleteId: string,
   testId: string,
 ): Promise<void> {
-  const response = await fetch(
-    `/api/athletes/${athleteId}/tests/${testId}`,
-    { method: "DELETE" },
-  );
+  const response = await fetch(`/api/athletes/${athleteId}/tests/${testId}`, {
+    method: "DELETE",
+  });
 
   if (!response.ok) {
     const json = (await response.json()) as { error?: string };
