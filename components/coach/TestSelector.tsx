@@ -27,6 +27,7 @@ export default function TestSelector({
   return (
     <div className="space-y-1.5">
       <select
+        id="test-selector"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}

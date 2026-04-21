@@ -26,7 +26,7 @@ export default function TrendIndicator({
   const isImprovement =
     direction === "higher_is_better" ? delta > 0 : delta < 0;
 
-  const colorClass = isImprovement ? "text-green-500" : "text-destructive";
+  const colorClass = isImprovement ? "text-success" : "text-destructive";
   const arrow = delta > 0 ? "↑" : "↓";
   const absDelta = Math.abs(delta);
 
