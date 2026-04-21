@@ -415,7 +415,7 @@ Rekomendowana kolejnoÄ‚â€žĂ˘â‚¬ĹˇÄ‚ËĂ˘â€šÂ¬ÄąÄľ
 |---|---|---|---|---|---|---|
 | F1 | GitHub protections | Protected `main` configured; PR-only flow + required checks enforced; secret scanning and push protection confirmed. Single-maintainer exception documented for approvals count. | P0/P1 | Dawid | 2026-04-19 | Closed |
 | F2 | Vercel env security | Preview/Production scope and encrypted env handling verified via Vercel CLI evidence; follow-up only for redeploy discipline runbook. | P0/P1 | Dawid | 2026-04-19 | Closed |
-| F3 | Supabase runtime controls | Partial runtime verification captured (Security Advisor/Auth/Storage/access). Final closure depends on explicit runtime RLS confirmation for private tables and final Redirect URLs decision. | P1 | Dawid | 2026-04-21 | Open |
+| F3 | Supabase runtime controls | Runtime verification completed for current `main` scope. `fitness_test_results` is deferred (exists only on branch `codex/us-012-backend-tests`, not in current runtime). | P1 | Dawid | 2026-04-21 | Closed with follow-up |
 
 ### Recommended execution order (next)\n1. Close F2 (Vercel env controls).\n2. Close F3 (Supabase dashboard controls).\n3. Re-run baseline and switch release decision to GO only when P0/P1 are closed.
 
@@ -611,8 +611,8 @@ Source of evidence:
 
 #### B. Auth URL configuration
 - Site URL: confirmed as configured correctly.
-- Redirect URLs: requires minimization decision (prod exact URL + one intentional preview wildcard).
-- Current audit status: `DO POPRAWY` until final URL set is narrowed/approved.
+- Redirect URLs: explicit decision recorded (keep current runtime-safe set; minimize later to prod exact URL + one intentional preview wildcard).
+- Current audit status: `PASS` (with follow-up hardening).
 
 #### C. Auth providers
 - Active provider set: Email only (as intended).
@@ -623,16 +623,15 @@ Source of evidence:
 - Current audit status: `DO POPRAWY` (acceptable for current stage, custom SMTP required before broader production rollout).
 
 #### E. Runtime RLS confirmation (closure gate)
-- Must be explicitly confirmed in dashboard for private tables:
-  - `profiles`
-  - `athletes`
-  - `training_plans`
-  - `injuries`
-  - `fitness_test_results`
-- Required evidence per table:
-  - RLS = ON
-  - policies present for required operations
-- Current audit status: `OPEN` (not yet confirmed in this audit section).
+- Runtime `main` private tables confirmed in scope:
+  - `profiles` -> RLS ON + policies present
+  - `athletes` -> RLS ON + policies present
+  - `training_plans` -> RLS ON + policies present
+  - `injuries` -> RLS ON + policies present
+- `fitness_test_results` -> `NOT APPLICABLE YET / DEFERRED`
+  - Reason: table exists only on branch `codex/us-012-backend-tests` and is not part of current `main` runtime.
+  - Action: re-verify RLS/runtime after PR US-012 is merged and migration is applied.
+- Current audit status: `PASS` for current runtime scope (`main`) + deferred follow-up for US-012 table.
 
 #### F. Storage
 - Current runtime state: no active buckets / storage usage.
@@ -643,14 +642,17 @@ Source of evidence:
 - Project admin access: single owner account.
 - Current audit status: `PASS`.
 
-### 21) F3 closure rule (no guessing)
+### 21) F3 closure decision (2026-04-21)
 
-F3 can be marked `Closed with follow-up` only when both conditions are true:
-1. Runtime RLS is explicitly confirmed table-by-table (section 20E).
-2. Redirect URL set is explicitly narrowed or consciously accepted with justification (section 20B).
+Decision: `Closed with follow-up`.
 
-When these two are added, expected F3 closure mode:
-- `Closed with follow-up`
-- Follow-ups to retain:
-  - Leaked Password Protection after Pro upgrade
-  - Custom SMTP rollout
+Closure basis:
+1. Runtime RLS confirmed for current `main` private-table scope (`profiles`, `athletes`, `training_plans`, `injuries`).
+2. Redirect URL decision is explicitly documented (accepted current state, minimization tracked as follow-up).
+3. Security Advisor/Auth/Storage/Access checks are documented with explicit status.
+
+Open follow-ups (non-blocking for current F3 closure):
+- Enable Leaked Password Protection after plan upgrade (accepted limitation currently).
+- Move from built-in email service to custom SMTP before broader production usage.
+- Minimize Redirect URLs set to strict minimum (production exact + intentional preview wildcard).
+- Re-open mini runtime verification for `fitness_test_results` after US-012 merge + migration apply.
