@@ -10,6 +10,7 @@ import AthleteProfileForm from "./AthleteProfileForm";
 import OnlineTab from "./OnlineTab";
 import PlanTabContent from "./PlanTabContent";
 import InjuriesTab from "./InjuriesTab";
+import TestsTab from "./TestsTab";
 
 interface AthleteEditorShellProps {
   athlete: Athlete;
@@ -17,7 +18,7 @@ interface AthleteEditorShellProps {
 
 const TABS: Tab[] = [
   { key: "profile", label: pl.coach.athlete.tabs.profile, disabled: false },
-  { key: "tests", label: pl.coach.athlete.tabs.tests, disabled: true },
+  { key: "tests", label: pl.coach.athlete.tabs.tests, disabled: false },
   { key: "injuries", label: pl.coach.athlete.tabs.injuries, disabled: false },
   { key: "diagnostics", label: pl.coach.athlete.tabs.diagnostics, disabled: true },
   { key: "progressions", label: pl.coach.athlete.tabs.progressions, disabled: true },
@@ -54,6 +55,7 @@ export default function AthleteEditorShell({ athlete }: AthleteEditorShellProps)
 
       {/* Tab content */}
       {activeTab === "profile" && <AthleteProfileForm athlete={athlete} />}
+      {activeTab === "tests" && <TestsTab athlete={athlete} />}
       {activeTab === "injuries" && <InjuriesTab athlete={athlete} />}
       {activeTab === "plans" && <PlanTabContent athlete={athlete} />}
       {activeTab === "online" && <OnlineTab athlete={athlete} />}
