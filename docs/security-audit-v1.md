@@ -415,7 +415,7 @@ Rekomendowana kolejnoÄ‚â€žĂ˘â‚¬ĹˇÄ‚ËĂ˘â€šÂ¬ÄąÄľ
 |---|---|---|---|---|---|---|
 | F1 | GitHub protections | Protected `main` configured; PR-only flow + required checks enforced; secret scanning and push protection confirmed. Single-maintainer exception documented for approvals count. | P0/P1 | Dawid | 2026-04-19 | Closed |
 | F2 | Vercel env security | Preview/Production scope and encrypted env handling verified via Vercel CLI evidence; follow-up only for redeploy discipline runbook. | P0/P1 | Dawid | 2026-04-19 | Closed |
-| F3 | Supabase runtime controls | Missing dashboard confirmation of Security Advisor and Storage access model. | P1 | Dawid | 2026-04-20 | Open |
+| F3 | Supabase runtime controls | Partial runtime verification captured (Security Advisor/Auth/Storage/access). Final closure depends on explicit runtime RLS confirmation for private tables and final Redirect URLs decision. | P1 | Dawid | 2026-04-21 | Open |
 
 ### Recommended execution order (next)\n1. Close F2 (Vercel env controls).\n2. Close F3 (Supabase dashboard controls).\n3. Re-run baseline and switch release decision to GO only when P0/P1 are closed.
 
@@ -595,3 +595,62 @@ Required next actions to close F3:
 2. Verify Security Advisor findings and capture status in this audit.
 3. Verify Storage buckets configuration (public/private, policy model, signed URL TTL).
 4. Update F3 row from `Open` to `Closed` with concrete evidence links/screenshots/CLI output.
+
+### 20) F3 runtime verification update (2026-04-21)
+
+Source of evidence:
+- Manual Supabase Dashboard verification reported by project owner (this thread).
+- Repository cross-check for migrations and private-data tables.
+
+#### A. Security Advisor
+- Observed status: `Errors = 0`, `Warnings = 1`.
+- Warning: `Leaked Password Protection Disabled`.
+- Classification: `DO POPRAWY` (accepted limitation).
+- Rationale: leaked-password protection is plan-dependent (Pro+).
+- Follow-up: enable after plan upgrade.
+
+#### B. Auth URL configuration
+- Site URL: confirmed as configured correctly.
+- Redirect URLs: requires minimization decision (prod exact URL + one intentional preview wildcard).
+- Current audit status: `DO POPRAWY` until final URL set is narrowed/approved.
+
+#### C. Auth providers
+- Active provider set: Email only (as intended).
+- Current audit status: `PASS`.
+
+#### D. SMTP
+- Current mode: built-in email service.
+- Current audit status: `DO POPRAWY` (acceptable for current stage, custom SMTP required before broader production rollout).
+
+#### E. Runtime RLS confirmation (closure gate)
+- Must be explicitly confirmed in dashboard for private tables:
+  - `profiles`
+  - `athletes`
+  - `training_plans`
+  - `injuries`
+  - `fitness_test_results`
+- Required evidence per table:
+  - RLS = ON
+  - policies present for required operations
+- Current audit status: `OPEN` (not yet confirmed in this audit section).
+
+#### F. Storage
+- Current runtime state: no active buckets / storage usage.
+- Current audit status: `PASS (current state)`.
+- Follow-up: re-verify before enabling uploads/private files.
+
+#### G. Access review
+- Project admin access: single owner account.
+- Current audit status: `PASS`.
+
+### 21) F3 closure rule (no guessing)
+
+F3 can be marked `Closed with follow-up` only when both conditions are true:
+1. Runtime RLS is explicitly confirmed table-by-table (section 20E).
+2. Redirect URL set is explicitly narrowed or consciously accepted with justification (section 20B).
+
+When these two are added, expected F3 closure mode:
+- `Closed with follow-up`
+- Follow-ups to retain:
+  - Leaked Password Protection after Pro upgrade
+  - Custom SMTP rollout
