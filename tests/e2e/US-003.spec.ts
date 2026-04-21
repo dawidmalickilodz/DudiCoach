@@ -142,8 +142,7 @@ test.describe("US-003 â€” coach athlete CRUD frontend", () => {
 
       // --- AC-4 â€” Level badge reflects training_start_date change
       // Setting today's date means level = PoczÄ…tkujÄ…cy.
-      const today = new Date().toISOString().slice(0, 10);
-      await page.locator("#training_start_date").fill(today);
+      await page.locator("#training_experience_bucket").selectOption("lessThan1Year");
       await expect(
         page.getByRole("status").filter({ hasText: /Zapis/i }).first(),
       ).toBeVisible({ timeout: 10_000 });
@@ -157,13 +156,13 @@ test.describe("US-003 â€” coach athlete CRUD frontend", () => {
           snapshot.age === 27 &&
           Number(snapshot.weight_kg) === 75 &&
           snapshot.height_cm === 180 &&
-          snapshot.training_start_date === today,
+          snapshot.training_start_date != null,
       );
 
       expect(persisted.age).toBe(27);
       expect(Number(persisted.weight_kg)).toBe(75);
       expect(persisted.height_cm).toBe(180);
-      expect(persisted.training_start_date).toBe(today);
+      expect(persisted.training_start_date).toBeTruthy();
 
       // --- AC-5 â€” Back navigation returns to the dashboard and the new card is there.
       await page.getByRole("button", { name: /Wstecz/i }).click();
