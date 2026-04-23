@@ -82,7 +82,9 @@ async function cleanupAthlete(
   request: APIRequestContext,
   athleteId: string,
 ): Promise<void> {
-  const response = await request.delete(`/api/athletes/${athleteId}`);
+  const response = await request.delete(`/api/athletes/${athleteId}`, {
+    timeout: 15_000,
+  });
   if (![204, 404].includes(response.status())) {
     throw new Error(
       `Unexpected cleanup status (${response.status()}) for athlete ${athleteId}`,
@@ -415,6 +417,7 @@ test.describe("US-012 - fitness tests feature", () => {
       expect(remaining.find((r) => r.id === seeded.id)).toBeUndefined();
     } finally {
       if (athleteId) {
+        await page.goto("/dashboard");
         await cleanupAthlete(page.request, athleteId);
       }
     }
