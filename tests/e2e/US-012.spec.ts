@@ -420,7 +420,17 @@ test.describe("US-012 - fitness tests feature", () => {
         if (!page.isClosed()) {
           await page.goto("/dashboard");
         }
-        await cleanupAthlete(page.request, athleteId);
+        try {
+          await cleanupAthlete(page.request, athleteId);
+        } catch (cleanupErr) {
+          console.warn(
+            `[US-012 E2E] Cleanup failed for athlete ${athleteId}: ${
+              cleanupErr instanceof Error
+                ? cleanupErr.message
+                : String(cleanupErr)
+            }`,
+          );
+        }
       }
     }
   });
