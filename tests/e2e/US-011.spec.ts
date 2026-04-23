@@ -300,7 +300,7 @@ test.describe("US-011 - injuries feature", () => {
         .getByRole("button", { name: /^Dodaj kontuzję$/i })
         .click();
 
-      await expect(page.getByText(injuryName)).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator("article").filter({ hasText: injuryName }).first()).toBeVisible({ timeout: 10_000 });
 
       const createdInjuries = await waitForInjuries(
         page.request,
@@ -355,7 +355,7 @@ test.describe("US-011 - injuries feature", () => {
         athleteId,
         (injuries) => !injuries.some((injury) => injury.name === injuryName),
       );
-      await expect(page.getByText(injuryName)).toHaveCount(0);
+      await expect(page.locator("article").filter({ hasText: injuryName })).toHaveCount(0);
     } finally {
       if (athleteId) {
         // Avoid race with possible in-flight autosave call.
