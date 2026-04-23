@@ -83,9 +83,11 @@ async function cleanupAthlete(
   athleteId: string,
 ): Promise<void> {
   const response = await request.delete(`/api/athletes/${athleteId}`);
-  if (![204, 404].includes(response.status())) {
-    throw new Error(
-      `Unexpected cleanup status (${response.status()}) for athlete ${athleteId}`,
+  const status = response.status();
+  if (![204, 404].includes(status)) {
+    // Teardown cleanup is best-effort and should not mask assertion failures.
+    console.warn(
+      `Teardown cleanup skipped for athlete ${athleteId} (status: ${status}).`,
     );
   }
 }
