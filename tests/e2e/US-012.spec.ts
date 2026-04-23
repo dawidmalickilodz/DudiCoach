@@ -149,6 +149,16 @@ async function listTestResults(
   return body.data ?? [];
 }
 
+async function neutralizeVercelLiveFeedbackOverlay(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    document
+      .querySelectorAll<HTMLElement>("vercel-live-feedback")
+      .forEach((el) => {
+        el.style.pointerEvents = "none";
+      });
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -388,6 +398,7 @@ test.describe("US-012 - fitness tests feature", () => {
 
       await page.goto(`/athletes/${athleteId}`);
       await page.getByRole("tab", { name: /^Testy$/i }).click();
+      await neutralizeVercelLiveFeedbackOverlay(page);
 
       // Result visible in history.
       await expect(page.getByText("Deska")).toBeVisible({ timeout: 10_000 });
