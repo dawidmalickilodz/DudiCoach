@@ -417,7 +417,9 @@ test.describe("US-012 - fitness tests feature", () => {
       expect(remaining.find((r) => r.id === seeded.id)).toBeUndefined();
     } finally {
       if (athleteId) {
-        await page.goto("/dashboard");
+        if (!page.isClosed()) {
+          await page.goto("/dashboard");
+        }
         await cleanupAthlete(page.request, athleteId);
       }
     }
