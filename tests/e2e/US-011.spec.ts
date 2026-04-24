@@ -340,8 +340,8 @@ test.describe("US-011 - injuries feature", () => {
       );
 
       // AC-3/AC-4 visual confirmation.
-      await expect(card.getByText(/4 - Poważna/i)).toBeVisible();
-      await expect(card.getByText(/W leczeniu/i)).toBeVisible();
+      await expect(card.locator("span").filter({ hasText: /4 - Poważna/i })).toBeVisible();
+      await expect(card.locator("span").filter({ hasText: /W leczeniu/i })).toBeVisible();
 
       // AC-5: delete with confirm dialog.
       page.once("dialog", async (dialog) => {
