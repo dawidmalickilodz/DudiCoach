@@ -107,12 +107,33 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
   // --- Build prompts ---
   const trainingMonths = computeTrainingMonths(athlete.training_start_date);
   const level = computeAthleteLevel(trainingMonths);
+  const { data: injuries, error: injuriesError } = await supabase
+    .from("injuries")
+    .select("name, severity, notes, status")
+    .eq("athlete_id", id)
+    .in("status", ["active", "healing"]);
+
+  if (injuriesError) {
+    console.error("[POST /plans] Injuries query failed; continuing without injuries context", {
+      code: injuriesError.code,
+      message: injuriesError.message,
+    });
+  }
+
+  const activeInjuries =
+    injuriesError || !injuries
+      ? []
+      : injuries.map((injury) => ({
+          name: injury.name,
+          severity: String(injury.severity),
+          notes: injury.notes,
+        }));
 
   const athleteWithContext: AthleteWithContext = {
     ...athlete,
     trainingMonths,
     level,
-    activeInjuries: [],
+    activeInjuries,
     diagnosticFindings: [],
     recentProgressions: [],
   };
