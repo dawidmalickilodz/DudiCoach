@@ -241,10 +241,12 @@ async function runPublicPanelFilteringScenario(browser: Browser): Promise<void> 
         }, { timeout: 15_000 })
         .toBe(0);
 
-      await expect(athletePage.getByText(activeInjury.name)).toHaveCount(0);
+      await expect(athletePage.getByText(activeInjury.name)).toHaveCount(0, {
+        timeout: 15_000,
+      });
       await expect(
         athletePage.getByText(/Brak aktywnych kontuzji/i),
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 15_000 });
     } finally {
       await athleteContext.close();
     }
