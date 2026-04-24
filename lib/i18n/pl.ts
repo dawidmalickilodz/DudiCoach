@@ -314,6 +314,11 @@ export const pl = {
     refresh: "Odśwież",
     syncedJustNow: "Zsynchronizowano",
     syncing: "Łączę...",
+    plan: {
+      sectionTitle: "Plan treningowy",
+      empty: "Brak planu treningowego.",
+      generatedOn: "Wygenerowano",
+    },
   },
 
   validation: {

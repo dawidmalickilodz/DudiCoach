@@ -7,14 +7,17 @@ import { pl } from "@/lib/i18n/pl";
 import { useRealtimeAthlete } from "@/lib/hooks/use-realtime-athlete";
 import type { AthletePublic } from "@/lib/types/athlete-public";
 import type { Injury } from "@/lib/api/injuries";
+import type { PublicTrainingPlan } from "@/lib/types/plan-public";
 import SyncIndicator from "./SyncIndicator";
 import AthleteProfileView from "./AthleteProfileView";
 import InjuriesPublicSection from "./InjuriesPublicSection";
+import PlanPublicSection from "./PlanPublicSection";
 
 interface AthletePanelProps {
   shareCode: string;
   initialData: AthletePublic;
   initialInjuries: Injury[];
+  initialPlan: PublicTrainingPlan | null;
 }
 
 /**
@@ -27,6 +30,7 @@ export default function AthletePanel({
   shareCode,
   initialData,
   initialInjuries,
+  initialPlan,
 }: AthletePanelProps) {
   const router = useRouter();
   const [injuries, setInjuries] = useState<Injury[]>(initialInjuries);
@@ -68,6 +72,9 @@ export default function AthletePanel({
       <AthleteProfileView athlete={athlete} />
       <div className="mt-4">
         <InjuriesPublicSection injuries={injuries} />
+      </div>
+      <div className="mt-4">
+        <PlanPublicSection plan={initialPlan} />
       </div>
 
       <div className="mt-6 flex justify-center">

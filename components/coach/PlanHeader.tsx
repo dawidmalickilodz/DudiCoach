@@ -1,10 +1,14 @@
 "use client";
 
 import { pl } from "@/lib/i18n/pl";
-import type { TrainingPlan } from "@/lib/api/plans";
+import type { TrainingPlanJson } from "@/lib/validation/training-plan";
 
 interface PlanHeaderProps {
-  plan: TrainingPlan;
+  plan: {
+    plan_name: string;
+    phase: string | null;
+    plan_json: Pick<TrainingPlanJson, "summary" | "weeklyOverview">;
+  };
 }
 
 type PhaseKey = keyof typeof pl.coach.athlete.phase;
