@@ -27,6 +27,28 @@ export async function GET(
   }
 
   const supabase = await createClient();
+  // First gate: validate that the share code resolves to an active athlete.
+  // This lets us distinguish bad/inactive codes (404) from "valid code but no plan" (200 + null).
+  const { data: athleteData, error: athleteError } = await supabase.rpc(
+    "get_athlete_by_share_code",
+    { p_code: normalized },
+  );
+
+  if (athleteError) {
+    console.error("[GET /api/athlete/[shareCode]/plans] Athlete lookup RPC error", {
+      code: athleteError.code,
+      message: athleteError.message,
+    });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+
+  if (!athleteData || athleteData.length === 0) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const { data, error } = await supabase.rpc(
     "get_latest_plan_by_share_code",
     { p_code: normalized },
@@ -45,6 +67,16 @@ export async function GET(
 
   // Supabase codegen types plan_json as Json (not TrainingPlanJson); shape was
   // validated by trainingPlanJsonSchema at write time (US-005). Cast is safe.
-  const row = (data as unknown as PublicTrainingPlan[] | null)?.[0] ?? null;
+  const rowRaw = (data as unknown as PublicTrainingPlan[] | null)?.[0] ?? null;
+  const row: PublicTrainingPlan | null = rowRaw
+    ? {
+        id: rowRaw.id,
+        plan_name: rowRaw.plan_name,
+        phase: rowRaw.phase,
+        plan_json: rowRaw.plan_json,
+        created_at: rowRaw.created_at,
+      }
+    : null;
+
   return NextResponse.json({ data: row });
 }

@@ -267,6 +267,26 @@ export async function GET(
   }
 
   const supabase = await createClient();
+  const { data: athleteData, error: athleteError } = await supabase.rpc(
+    "get_athlete_by_share_code",
+    { p_code: normalized },
+  );
+
+  if (athleteError) {
+    console.error("[GET /api/athlete/[shareCode]/plans] Athlete lookup RPC error", {
+      code: athleteError.code,
+      message: athleteError.message,
+    });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+
+  if (!athleteData || athleteData.length === 0) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const { data, error } = await supabase.rpc(
     "get_latest_plan_by_share_code",
     { p_code: normalized },
@@ -283,37 +303,19 @@ export async function GET(
     );
   }
 
-  // The RPC returns an array of 0 or 1 rows. 0 rows means either:
-  //  (a) code does not exist or is inactive -> 404
-  //  (b) code is valid+active, athlete has no plan -> 200 { data: null }
-  //
-  // We cannot distinguish these from this endpoint alone. To avoid a
-  // separate share-validity check (which would double round-trips), we
-  // let the caller (the athlete page RSC) handle this: the RSC already
-  // calls get_athlete_by_share_code in parallel, so if that returns a
-  // row, the share code is valid. If this endpoint returns `data: null`,
-  // the RSC knows it is case (b).
-  //
-  // For external fetch() callers (the client-side hook if it ever exists),
-  // we return { data: null } when the RPC returns 0 rows. The caller can
-  // interpret this as "no plan" since any code lookup that reaches the
-  // public API route has already been validated by the athlete's page.
+  // At this point, share code was confirmed active by get_athlete_by_share_code.
+  // Empty plan rows therefore mean "valid active athlete but no plan yet".
   const row = data?.[0] ?? null;
   return NextResponse.json({ data: row });
 }
 ```
 
-**Design note on the 404-vs-null ambiguity**: Returning `data: null` when the
-code is nonexistent/inactive is acceptable here because:
-1. The legitimate consumer is the athlete panel RSC, which co-fetches
-   `get_athlete_by_share_code`. A null plan combined with a 404 profile
-   means "bad code". A null plan combined with a valid profile means
-   "no plan yet". The RSC renders the empty state in the latter case and
-   calls `notFound()` in the former.
-2. A malicious prober can already distinguish valid from invalid codes via
-   the `/api/athlete/[shareCode]` endpoint (which 404s on bad codes). This
-   endpoint does not provide any additional signal. The share code is the
-   secret; enumeration is the bound (1.07 billion codes).
+**Design note on 404-vs-null behavior**: The endpoint performs an explicit
+active-share pre-check via `get_athlete_by_share_code` before plan lookup.
+This guarantees:
+1. malformed, nonexistent, and inactive codes return 404;
+2. `200 { data: null }` means only "valid active athlete, no plan yet";
+3. external callers do not need a second endpoint call to disambiguate.
 
 ---
 
