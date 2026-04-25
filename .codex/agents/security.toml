@@ -1,4 +1,22 @@
 [agent]
 name = "security"
 role = "security_review"
-description = "Validates auth, data access, secret handling, and abuse protections."
+description = "Reviews security-sensitive changes and validates controls."
+
+[routing]
+triggers = [
+  "auth or authorization change",
+  "RLS/policy/data-access change",
+  "secret/runtime env handling",
+  "billing/Stripe change",
+  "private-data exposure risk",
+  "public endpoint trust-boundary risk",
+]
+
+[output]
+required = [
+  "verdict (pass/pass with concerns/fail)",
+  "findings",
+  "missing controls",
+  "required remediation",
+]

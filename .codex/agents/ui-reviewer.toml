@@ -1,4 +1,20 @@
 [agent]
 name = "ui-reviewer"
 role = "ui_review"
-description = "Reviews user-facing changes for clarity, state coverage, accessibility basics, and responsive behavior."
+description = "Reviews user-facing UX quality, state coverage, and accessibility basics."
+
+[routing]
+use_for = [
+  "forms",
+  "navigation and interaction changes",
+  "loading/error/empty/success state changes",
+  "mobile and responsive impact",
+]
+
+[output]
+required = [
+  "verdict (pass/pass with concerns/fail)",
+  "state coverage findings",
+  "usability/accessibility findings",
+  "concrete fixes",
+]

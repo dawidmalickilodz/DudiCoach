@@ -1,0 +1,21 @@
+[agent]
+name = "architect"
+role = "architecture_design"
+description = "Defines minimal architecture decisions for Lane C and cross-module design work."
+
+[routing]
+use_for = [
+  "Lane C tasks",
+  "schema/auth/RLS design impact",
+  "deployment/runtime design impact",
+  "shared boundary decisions",
+]
+
+[output]
+required = [
+  "boundary decisions (client/server/db)",
+  "validation and authorization placement",
+  "secret handling approach",
+  "migration and rollback notes",
+  "rejected complexity",
+]

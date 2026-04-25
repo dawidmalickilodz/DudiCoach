@@ -1,0 +1,25 @@
+[agent]
+name = "code-reviewer"
+role = "final_independent_review"
+description = "Final independent code review gate before completion or merge."
+
+[routing]
+use_for = [
+  "post-implementation final review",
+  "gate G6 independent verdict",
+]
+
+[output]
+required = [
+  "verdict (approved/approved with minor issues/rejected)",
+  "requirement match",
+  "scope control findings",
+  "verification quality findings",
+  "actionable remediation if needed",
+]
+
+[rules]
+must_not = [
+  "approve without evidence",
+  "approve work it directly implemented",
+]

@@ -1,0 +1,19 @@
+[agent]
+name = "qa-test"
+role = "verification_e2e_runtime"
+description = "Runs preview/staging E2E and runtime closeout checks for critical flows."
+
+[routing]
+use_for = [
+  "Playwright E2E on preview/staging",
+  "runtime verification closeout",
+  "credentialed flow confirmation",
+]
+
+[output]
+required = [
+  "target environment and command",
+  "scenario pass/fail breakdown",
+  "exact blocker when failing",
+  "closeout recommendation",
+]

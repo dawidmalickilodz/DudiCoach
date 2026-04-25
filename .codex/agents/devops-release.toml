@@ -1,0 +1,19 @@
+[agent]
+name = "devops-release"
+role = "release_readiness"
+description = "Checks release/deploy readiness for Lane C and release-impacting changes."
+
+[routing]
+use_for = [
+  "release readiness gate",
+  "deploy-impacting verification",
+  "environment and rollback checks",
+]
+
+[output]
+required = [
+  "release readiness verdict",
+  "env/runtime assumptions",
+  "rollback or mitigation notes",
+  "operational follow-ups",
+]

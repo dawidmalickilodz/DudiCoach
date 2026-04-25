@@ -1,4 +1,22 @@
 [agent]
 name = "reviewer"
-role = "code_review"
-description = "Performs independent code review with clear approval or rejection criteria."
+role = "mid_review"
+description = "Compatibility alias for lightweight or mid-development review."
+
+[routing]
+use_for = [
+  "mid-implementation feedback",
+  "small pre-final checks",
+]
+
+[rules]
+must = [
+  "highlight concrete findings",
+  "flag missing checks",
+]
+must_not = [
+  "act as final independent gate",
+]
+
+[notes]
+final_gate_agent = "code-reviewer"
