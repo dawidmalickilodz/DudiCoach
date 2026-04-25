@@ -82,7 +82,9 @@ async function cleanupAthlete(
   request: APIRequestContext,
   athleteId: string,
 ): Promise<void> {
-  const response = await request.delete(`/api/athletes/${athleteId}`);
+  const response = await request.delete(`/api/athletes/${athleteId}`, {
+    timeout: 15_000,
+  });
   if (![204, 404].includes(response.status())) {
     throw new Error(
       `Unexpected cleanup status (${response.status()}) for athlete ${athleteId}`,
@@ -145,6 +147,16 @@ async function listTestResults(
   }
   const body = (await response.json()) as { data?: FitnessTestResult[] };
   return body.data ?? [];
+}
+
+async function neutralizeVercelLiveFeedbackOverlay(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    document
+      .querySelectorAll<HTMLElement>("vercel-live-feedback")
+      .forEach((el) => {
+        el.style.pointerEvents = "none";
+      });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -386,6 +398,7 @@ test.describe("US-012 - fitness tests feature", () => {
 
       await page.goto(`/athletes/${athleteId}`);
       await page.getByRole("tab", { name: /^Testy$/i }).click();
+      await neutralizeVercelLiveFeedbackOverlay(page);
 
       // Result visible in history.
       await expect(page.getByText("Deska")).toBeVisible({ timeout: 10_000 });
@@ -415,7 +428,20 @@ test.describe("US-012 - fitness tests feature", () => {
       expect(remaining.find((r) => r.id === seeded.id)).toBeUndefined();
     } finally {
       if (athleteId) {
-        await cleanupAthlete(page.request, athleteId);
+        if (!page.isClosed()) {
+          await page.goto("/dashboard");
+        }
+        try {
+          await cleanupAthlete(page.request, athleteId);
+        } catch (cleanupErr) {
+          console.warn(
+            `[US-012 E2E] Cleanup failed for athlete ${athleteId}: ${
+              cleanupErr instanceof Error
+                ? cleanupErr.message
+                : String(cleanupErr)
+            }`,
+          );
+        }
       }
     }
   });

@@ -57,6 +57,19 @@ const ATHLETE = {
   training_start_date: "2025-01-01",
 };
 
+const PARSED_PLAN = {
+  planName: "Plan testowy",
+  phase: "bazowy",
+};
+
+type InjuriesQueryError = { code?: string; message?: string } | null;
+type InjurySeedRow = {
+  name: string;
+  severity: number;
+  notes: string | null;
+  status: string;
+};
+
 function routeContext(id: string) {
   return { params: Promise.resolve({ id }) };
 }
@@ -89,13 +102,43 @@ function makeTrainingPlansInsertBuilder() {
   };
 }
 
+function makeInjuriesSelectBuilder(options?: {
+  rows?: InjurySeedRow[];
+  error?: InjuriesQueryError;
+}) {
+  return {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    in: vi.fn().mockImplementation(
+      (_column: string, statuses: string[]) => {
+        if (options?.error) {
+          return Promise.resolve({ data: null, error: options.error });
+        }
+        const rows = options?.rows ?? [];
+        const filtered = rows
+          .filter((row) => statuses.includes(row.status))
+          .map((row) => ({
+            name: row.name,
+            severity: row.severity,
+            notes: row.notes,
+            status: row.status,
+          }));
+        return Promise.resolve({ data: filtered, error: null });
+      },
+    ),
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 
   mockGetUser.mockResolvedValue({ data: { user: COACH_USER }, error: null });
   mockCheckRateLimit.mockReturnValue({ allowed: true });
+  mockGeneratePlan.mockResolvedValue("{\"ok\":true}");
+  mockParsePlanJson.mockReturnValue(PARSED_PLAN);
   mockFrom.mockImplementation((table: string) => {
     if (table === "athletes") return makeAthleteSelectBuilder();
+    if (table === "injuries") return makeInjuriesSelectBuilder();
     if (table === "training_plans") return makeTrainingPlansInsertBuilder();
     throw new Error(`Unexpected table: ${table}`);
   });
@@ -180,4 +223,129 @@ describe("POST /api/athletes/[id]/plans", () => {
     expect(json.error).toBe("Nie udało się wygenerować planu.");
     expect("details" in json).toBe(false);
   });
+  it("includes active/healing injuries in generated prompt context", async () => {
+    const injuriesBuilder = makeInjuriesSelectBuilder({
+      rows: [
+        {
+          name: "Naderwanie dwuglowego uda",
+          severity: 4,
+          notes: "Unikaj sprintow",
+          status: "active",
+        },
+        {
+          name: "Stluczenie barku",
+          severity: 2,
+          notes: null,
+          status: "healing",
+        },
+      ],
+    });
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "athletes") return makeAthleteSelectBuilder();
+      if (table === "injuries") return injuriesBuilder;
+      if (table === "training_plans") return makeTrainingPlansInsertBuilder();
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const response = await POST(
+      makeRequest() as Parameters<typeof POST>[0],
+      routeContext(ATHLETE_ID),
+    );
+
+    expect(response.status).toBe(201);
+    expect(injuriesBuilder.in).toHaveBeenCalledWith("status", [
+      "active",
+      "healing",
+    ]);
+
+    const generationArgs = mockGeneratePlan.mock.calls[0][0] as {
+      userPrompt: string;
+    };
+    expect(generationArgs.userPrompt).toContain("Naderwanie dwuglowego uda");
+    expect(generationArgs.userPrompt).toContain("Stluczenie barku");
+  });
+
+  it("excludes healed-only injuries from activeInjuries prompt context", async () => {
+    const healedInjuryName = "Stara kontuzja kolana";
+    const injuriesBuilder = makeInjuriesSelectBuilder({
+      rows: [
+        {
+          name: healedInjuryName,
+          severity: 3,
+          notes: "W pelni zaleczona",
+          status: "healed",
+        },
+      ],
+    });
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "athletes") return makeAthleteSelectBuilder();
+      if (table === "injuries") return injuriesBuilder;
+      if (table === "training_plans") return makeTrainingPlansInsertBuilder();
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const response = await POST(
+      makeRequest() as Parameters<typeof POST>[0],
+      routeContext(ATHLETE_ID),
+    );
+
+    expect(response.status).toBe(201);
+    expect(injuriesBuilder.in).toHaveBeenCalledWith("status", [
+      "active",
+      "healing",
+    ]);
+
+    const generationArgs = mockGeneratePlan.mock.calls[0][0] as {
+      userPrompt: string;
+    };
+    expect(generationArgs.userPrompt).toContain("Brak aktywnych kontuzji");
+    expect(generationArgs.userPrompt).not.toContain(healedInjuryName);
+  });
+
+  it("degrades gracefully when injuries query fails and still generates plan", async () => {
+    const injuriesBuilder = makeInjuriesSelectBuilder({
+      error: { code: "XX000", message: "injuries read failed" },
+    });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "athletes") return makeAthleteSelectBuilder();
+      if (table === "injuries") return injuriesBuilder;
+      if (table === "training_plans") return makeTrainingPlansInsertBuilder();
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const response = await POST(
+      makeRequest() as Parameters<typeof POST>[0],
+      routeContext(ATHLETE_ID),
+    );
+
+    expect(response.status).toBe(201);
+    expect(injuriesBuilder.in).toHaveBeenCalledWith("status", [
+      "active",
+      "healing",
+    ]);
+    expect(mockGeneratePlan).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      "[POST /plans] Injuries query failed; continuing without injuries context",
+      {
+        code: "XX000",
+        message: "injuries read failed",
+      },
+    );
+
+    const generationArgs = mockGeneratePlan.mock.calls[0][0] as {
+      userPrompt: string;
+    };
+    expect(generationArgs.userPrompt).toContain("Brak aktywnych kontuzji");
+
+    errorSpy.mockRestore();
+  });
 });
+
+
+
+
+

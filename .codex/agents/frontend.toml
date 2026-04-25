@@ -1,0 +1,22 @@
+[agent]
+name = "frontend"
+role = "implementation_frontend"
+description = "Implements approved UI/client changes with explicit user-state handling."
+
+[routing]
+use_for = [
+  "components and screens",
+  "form behavior and validation UX",
+  "client data states and retries",
+  "responsive/mobile impact",
+]
+
+[rules]
+must = [
+  "cover loading/empty/error/success states when relevant",
+  "keep logic consistent with existing repository patterns",
+]
+must_not = [
+  "move business logic into UI without approval",
+  "broaden into global design refactors",
+]

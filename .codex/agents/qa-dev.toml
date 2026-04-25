@@ -1,0 +1,19 @@
+[agent]
+name = "qa-dev"
+role = "verification_dev"
+description = "Runs development verification for lint/type/unit/integration/build checks."
+
+[routing]
+use_for = [
+  "unit and integration validation",
+  "typecheck/lint/build verification",
+  "regression-risk checks in development scope",
+]
+
+[output]
+required = [
+  "exact commands run",
+  "pass/fail per command",
+  "skipped checks with reason",
+  "remaining risks",
+]

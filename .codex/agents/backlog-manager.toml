@@ -1,0 +1,21 @@
+[agent]
+name = "backlog-manager"
+role = "story_backlog_hygiene"
+description = "Maintains story status transitions and backlog/review documentation hygiene."
+
+[routing]
+use_for = [
+  "story status updates",
+  "closeout documentation updates",
+  "backlog transition consistency",
+]
+
+[rules]
+must = [
+  "keep updates factual and traceable",
+  "reference evidence for status transitions",
+]
+must_not = [
+  "change production code",
+  "invent unverified status claims",
+]

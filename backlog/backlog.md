@@ -1,7 +1,7 @@
 # Training Planner AI - Backlog
 
 **Owner**: backlog-manager agent
-**Last updated**: 2026-04-20
+**Last updated**: 2026-04-24
 **Sprint**: Sprint 2 (Hardening + Athlete Data)
 
 ## Status Legend
@@ -34,8 +34,8 @@
 |---|---|---|---|---|---|---|
 | US-020 | Unauth API routes — 401 zamiast 500 | EPIC-A | P2 | S | Done | Review Approve 2026-04-20; impl 7c1e390 |
 | US-019 | Dashboard hydration - initialData w useAthletes query | EPIC-A | P2 | XS | Done | Review Approve 2026-04-20; impl 52af115 |
-| US-011 | Kontuzje zawodnika - lista z severity | EPIC-A | P1 | M | InE2E | Backend+frontend complete; `tests/e2e/US-011.spec.ts` added; local run skipped without `E2E_COACH_*` |
-| US-012 | Testy sprawnościowe - dynamiczne per sport | EPIC-A | P1 | M | InDev | Backend+tests done (migration, API, integration/unit); frontend tabs+E2E pending |
+| US-011 | Kontuzje zawodnika - lista z severity | EPIC-A | P1 | M | Done | Final credentialed preview/staging E2E: `4/4 passed` (2026-04-24); E2E/runtime closed |
+| US-012 | Testy sprawnosciowe - dynamiczne per sport | EPIC-A | P1 | M | Done | Final credentialed preview/staging E2E: `8/8 passed` (2026-04-24); E2E/runtime closed |
 
 ## Operational Notes (2026-04-15)
 

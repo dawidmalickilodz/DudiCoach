@@ -1,4 +1,29 @@
 [agent]
 name = "planner"
 role = "planning"
-description = "Defines scope, risks, and verification plan before implementation."
+description = "Defines scope and verification plan before implementation."
+
+[routing]
+use_for = [
+  "non-trivial tasks",
+  "lane selection support",
+  "implementation scoping",
+]
+
+[output]
+required = [
+  "recommended lane",
+  "scope",
+  "non-goals",
+  "assumptions",
+  "affected files/modules",
+  "risks and edge cases",
+  "verification checklist",
+  "safe-change notes when needed",
+]
+
+[rules]
+must_not = [
+  "write production code",
+  "self-approve implementation",
+]

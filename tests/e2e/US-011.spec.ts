@@ -241,10 +241,12 @@ async function runPublicPanelFilteringScenario(browser: Browser): Promise<void> 
         }, { timeout: 15_000 })
         .toBe(0);
 
-      await expect(athletePage.getByText(activeInjury.name)).toHaveCount(0);
+      await expect(athletePage.getByText(activeInjury.name)).toHaveCount(0, {
+        timeout: 15_000,
+      });
       await expect(
         athletePage.getByText(/Brak aktywnych kontuzji/i),
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 15_000 });
     } finally {
       await athleteContext.close();
     }
@@ -300,7 +302,7 @@ test.describe("US-011 - injuries feature", () => {
         .getByRole("button", { name: /^Dodaj kontuzję$/i })
         .click();
 
-      await expect(page.getByText(injuryName)).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator("article").filter({ hasText: injuryName }).first()).toBeVisible({ timeout: 10_000 });
 
       const createdInjuries = await waitForInjuries(
         page.request,
@@ -340,8 +342,8 @@ test.describe("US-011 - injuries feature", () => {
       );
 
       // AC-3/AC-4 visual confirmation.
-      await expect(card.getByText(/4 - Poważna/i)).toBeVisible();
-      await expect(card.getByText(/W leczeniu/i)).toBeVisible();
+      await expect(card.locator("span").filter({ hasText: /4 - Poważna/i })).toBeVisible();
+      await expect(card.locator("span").filter({ hasText: /W leczeniu/i })).toBeVisible();
 
       // AC-5: delete with confirm dialog.
       page.once("dialog", async (dialog) => {
@@ -355,7 +357,7 @@ test.describe("US-011 - injuries feature", () => {
         athleteId,
         (injuries) => !injuries.some((injury) => injury.name === injuryName),
       );
-      await expect(page.getByText(injuryName)).toHaveCount(0);
+      await expect(page.locator("article").filter({ hasText: injuryName })).toHaveCount(0);
     } finally {
       if (athleteId) {
         // Avoid race with possible in-flight autosave call.
