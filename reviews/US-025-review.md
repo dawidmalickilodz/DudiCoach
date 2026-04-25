@@ -71,3 +71,21 @@ None.
 - No `42883` (function-not-found) errors in logs
 - No 500s on `/api/athlete/*/plans`
 - No console errors in `PlanHeader` after prop-type widening
+
+## Post-merge production smoke (2026-04-25)
+
+Status: **Partially passed** (active-with-plan runtime case pending)
+
+User-provided production smoke evidence after PR #30 merge and manual US-025 migration apply:
+
+1. `GET /api/athlete/DKG3YF` -> `200`
+2. `GET /api/athlete/DKG3YF/plans` -> `200 {"data":null}`
+3. `GET /api/athlete/abc/plans` -> `404`
+4. `GET /api/athlete/ZZZ234/plans` -> `404`
+
+Interpretation:
+
+- Active share-code control path works in production.
+- Active share code with no plan correctly returns `200 { data: null }`.
+- Malformed and nonexistent codes correctly return `404`.
+- Remaining runtime gap: active share code with at least one plan has not yet been verified in production for public-safe response shape (`id`, `plan_name`, `phase`, `plan_json`, `created_at` only; no `athlete_id`, no `coach_id`).
