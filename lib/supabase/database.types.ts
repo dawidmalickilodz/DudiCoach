@@ -258,6 +258,16 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_latest_plan_by_share_code: {
+        Args: { p_code: string }
+        Returns: {
+          id: string
+          plan_name: string
+          phase: string | null
+          plan_json: Json
+          created_at: string
+        }[]
+      }
       reset_share_code: {
         Args: { p_athlete_id: string }
         Returns: string
