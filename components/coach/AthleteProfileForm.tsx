@@ -79,7 +79,16 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
     watch,
     formState,
     setError,
-    mutationFn: (data) => updateMutation.mutateAsync(data),
+    mutationFn: async (data) => {
+      // Defensive pre-check: debounce timing can briefly outrun async resolver
+      // updates during numeric typing. Never send an invalid PATCH payload.
+      const parsed = updateAthleteSchema.safeParse(data);
+      if (!parsed.success) {
+        return;
+      }
+
+      await updateMutation.mutateAsync(parsed.data);
+    },
     debounceMs: 800,
     publicErrorMessage: pl.coach.athlete.online.errorGeneric,
   });

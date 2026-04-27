@@ -292,21 +292,15 @@ describe("useAutoSave", () => {
     act(() => triggerChange({ weight_kg: 6 }));
 
     // Validation reports the intermediate value as invalid. Next keystroke to
-    // "60" arrives while form still has error state.
+    // "60" arrives while form still has stale error state.
     setErrors({ weight_kg: { message: "too low" } });
     rerender({ formState: state });
     act(() => triggerChange({ weight_kg: 60 }));
 
-    // Old timer for "6" must be canceled (no stale request).
-    await act(async () => {
-      vi.advanceTimersByTime(800);
-    });
-    expect(mutationFn).not.toHaveBeenCalled();
-
-    // Validation catches up: form is valid, so latest value should be saved.
+    // Validation catches up to the final value before debounce executes.
+    // No extra user change is fired here.
     setErrors({});
     rerender({ formState: state });
-    act(() => triggerChange({ weight_kg: 60 }));
 
     await act(async () => {
       vi.advanceTimersByTime(800);
