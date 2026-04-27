@@ -1,16 +1,9 @@
 "use client";
 
 /**
- * useAutoSave — reusable hook for 800ms-debounced auto-save of react-hook-form forms.
+ * useAutoSave - reusable hook for debounced auto-save of react-hook-form forms.
  *
  * Design: ADR-0001 (docs/adr/0001-auto-save-with-react-hook-form-tanstack-query.md)
- *
- * - Uses watch(callback) subscription (not watch() re-render) for efficiency.
- * - Skips the first render when the form loads with server data via reset().
- * - Skips saves when the form has validation errors.
- * - Sends the full form payload on each save (not a diff).
- * - Returns { isSaving, lastSavedAt, saveError } for UI feedback.
- * - The consuming component owns the toast — it watches lastSavedAt.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -57,37 +50,25 @@ export function useAutoSave<TFormValues extends FieldValues>({
   const isFirstRender = useRef(true);
   const latestValuesRef = useRef<TFormValues | null>(null);
 
-  // Stable ref for mutationFn to avoid re-subscribing on every render
+  // Stable ref for mutationFn to avoid re-subscribing on every render.
   const mutationFnRef = useRef(mutationFn);
   mutationFnRef.current = mutationFn;
 
-  // We capture formState.errors in a ref so the subscription closure can read
-  // the latest value without being re-subscribed on every error change.
+  // Keep latest form errors in a ref for the subscription callback.
   const errorsRef = useRef(formState.errors);
   errorsRef.current = formState.errors;
 
   useEffect(() => {
-    const subscription = watch((formValues) => {
-      latestValuesRef.current = formValues as TFormValues;
-      // Skip the very first fire — form just loaded server data via reset()
-      if (isFirstRender.current) {
-        isFirstRender.current = false;
-        return;
-      }
-
-      // Clear any in-flight debounce timer
-      if (timeoutRef.current !== undefined) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      // Skip if the form currently has validation errors
-      if (Object.keys(errorsRef.current).length > 0) return;
-
-      // Schedule the save
+    const scheduleSave = (delayMs: number, errorRetriesLeft: number) => {
       timeoutRef.current = setTimeout(() => {
-        // Guard again at execution time: the form may have become invalid
-        // after scheduling (e.g. intermediate numeric typing state).
-        if (Object.keys(errorsRef.current).length > 0) return;
+        if (Object.keys(errorsRef.current).length > 0) {
+          // Allow a few short retries so resolver errors can settle after rapid
+          // typing (for example 6 -> 60), without infinite polling.
+          if (errorRetriesLeft > 0) {
+            scheduleSave(150, errorRetriesLeft - 1);
+          }
+          return;
+        }
 
         const latestValues = latestValuesRef.current;
         if (!latestValues) return;
@@ -110,7 +91,23 @@ export function useAutoSave<TFormValues extends FieldValues>({
             setIsSaving(false);
           }
         })();
-      }, debounceMs);
+      }, delayMs);
+    };
+
+    const subscription = watch((formValues) => {
+      latestValuesRef.current = formValues as TFormValues;
+
+      // Skip the first callback fire when the form hydrates via reset().
+      if (isFirstRender.current) {
+        isFirstRender.current = false;
+        return;
+      }
+
+      if (timeoutRef.current !== undefined) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      scheduleSave(debounceMs, 3);
     });
 
     return () => {
