@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
 
 import Anthropic from "@anthropic-ai/sdk";
-import { beforeEach, vi } from "vitest";
+import { afterAll, beforeEach, vi } from "vitest";
 
 const {
   mockGetUser,
@@ -61,6 +61,8 @@ const PARSED_PLAN = {
   planName: "Plan testowy",
   phase: "bazowy",
 };
+
+const ORIGINAL_ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 type InjuriesQueryError = { code?: string; message?: string } | null;
 type InjurySeedRow = {
@@ -131,6 +133,7 @@ function makeInjuriesSelectBuilder(options?: {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  process.env.ANTHROPIC_API_KEY = "test-key";
 
   mockGetUser.mockResolvedValue({ data: { user: COACH_USER }, error: null });
   mockCheckRateLimit.mockReturnValue({ allowed: true });
@@ -142,6 +145,14 @@ beforeEach(() => {
     if (table === "training_plans") return makeTrainingPlansInsertBuilder();
     throw new Error(`Unexpected table: ${table}`);
   });
+});
+
+afterAll(() => {
+  if (ORIGINAL_ANTHROPIC_API_KEY === undefined) {
+    delete process.env.ANTHROPIC_API_KEY;
+    return;
+  }
+  process.env.ANTHROPIC_API_KEY = ORIGINAL_ANTHROPIC_API_KEY;
 });
 
 describe("POST /api/athletes/[id]/plans", () => {
@@ -190,6 +201,46 @@ describe("POST /api/athletes/[id]/plans", () => {
 
     expect(response.status).toBe(500);
     expect(json.error).toBe("Nie udało się wygenerować planu.");
+    expect("details" in json).toBe(false);
+  });
+
+  it("returns 503 when ANTHROPIC_API_KEY is missing", async () => {
+    delete process.env.ANTHROPIC_API_KEY;
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const response = await POST(
+      makeRequest() as Parameters<typeof POST>[0],
+      routeContext(ATHLETE_ID),
+    );
+    const json = (await response.json()) as { error: string; details?: string };
+
+    expect(response.status).toBe(503);
+    expect(json.error).toBe(
+      "Us\u0142uga generowania planu jest chwilowo niedost\u0119pna.",
+    );
+    expect("details" in json).toBe(false);
+    expect(mockGeneratePlan).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith("[POST /plans] Missing ANTHROPIC_API_KEY");
+
+    errorSpy.mockRestore();
+  });
+
+  it("returns 503 for Anthropic auth/config API errors", async () => {
+    const anthropicAuthError = new Error("unauthorized");
+    Object.setPrototypeOf(anthropicAuthError, Anthropic.APIError.prototype);
+    (anthropicAuthError as Error & { status: number }).status = 401;
+    mockGeneratePlan.mockRejectedValue(anthropicAuthError);
+
+    const response = await POST(
+      makeRequest() as Parameters<typeof POST>[0],
+      routeContext(ATHLETE_ID),
+    );
+    const json = (await response.json()) as { error: string; details?: string };
+
+    expect(response.status).toBe(503);
+    expect(json.error).toBe(
+      "Us\u0142uga generowania planu jest chwilowo niedost\u0119pna.",
+    );
     expect("details" in json).toBe(false);
   });
 

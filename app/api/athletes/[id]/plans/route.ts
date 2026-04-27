@@ -28,6 +28,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 const RETRYABLE_STATUS_CODES = new Set([500, 502, 503, 529]);
 const MAX_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 1000;
+const AI_UNAVAILABLE_ERROR = "Usługa generowania planu jest chwilowo niedostępna.";
 
 function isRetryableError(error: unknown): boolean {
   if (error instanceof Anthropic.APIError) {
@@ -45,6 +46,25 @@ function isRetryableError(error: unknown): boolean {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isAiConfigMissing(): boolean {
+  return !process.env.ANTHROPIC_API_KEY?.trim();
+}
+
+function isAiAuthError(error: unknown): boolean {
+  if (error instanceof Anthropic.APIError) {
+    return error.status === 401 || error.status === 403;
+  }
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return (
+      message.includes("could not resolve authentication method") ||
+      message.includes("apikey") ||
+      message.includes("authtoken")
+    );
+  }
+  return false;
 }
 
 /**
@@ -101,6 +121,14 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
           "Uzupełnij dane zawodnika (sport, dni treningowe) przed generowaniem.",
       },
       { status: 422 },
+    );
+  }
+
+  if (isAiConfigMissing()) {
+    console.error("[POST /plans] Missing ANTHROPIC_API_KEY");
+    return NextResponse.json(
+      { error: AI_UNAVAILABLE_ERROR },
+      { status: 503 },
     );
   }
 
@@ -162,6 +190,23 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
   }
 
   if (rawText === null) {
+    if (isAiAuthError(lastError)) {
+      if (lastError instanceof Anthropic.APIError) {
+        console.error("[POST /plans] Anthropic authentication/config error", {
+          status: lastError.status,
+          message: lastError.message,
+        });
+      } else if (lastError instanceof Error) {
+        console.error("[POST /plans] Anthropic authentication/config error", {
+          message: lastError.message,
+        });
+      }
+      return NextResponse.json(
+        { error: AI_UNAVAILABLE_ERROR },
+        { status: 503 },
+      );
+    }
+
     // Map Anthropic / network errors to appropriate HTTP responses
     if (lastError instanceof Anthropic.APIConnectionTimeoutError) {
       return NextResponse.json(
