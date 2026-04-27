@@ -38,6 +38,9 @@ vi.mock("@/lib/ai/rate-limiter", () => ({
 }));
 
 vi.mock("@/lib/ai/client", () => ({
+  ANTHROPIC_TIMEOUT_MS: 120_000,
+  MODEL: "claude-sonnet-4-6",
+  PLAN_MAX_TOKENS: 8000,
   generatePlan: (...args: unknown[]) => mockGeneratePlan(...args),
 }));
 
@@ -174,6 +177,25 @@ describe("POST /api/athletes/[id]/plans", () => {
     expect(response.status).toBe(401);
     expect(json.error).toBe("Brak autoryzacji.");
     expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it("returns 504 for Anthropic timeout errors", async () => {
+    const timeoutError = new Error("request timeout");
+    Object.setPrototypeOf(
+      timeoutError,
+      Anthropic.APIConnectionTimeoutError.prototype,
+    );
+    mockGeneratePlan.mockRejectedValue(timeoutError);
+
+    const response = await POST(
+      makeRequest() as Parameters<typeof POST>[0],
+      routeContext(ATHLETE_ID),
+    );
+    const json = (await response.json()) as { error: string; details?: string };
+
+    expect(response.status).toBe(504);
+    expect(json.error).toBe("Przekroczono czas. Spr\u00f3buj ponownie.");
+    expect("details" in json).toBe(false);
   });
 
   it("returns 500 without details for Anthropic API errors", async () => {
