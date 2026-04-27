@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
-import { updateAthleteSchema } from "@/lib/validation/athlete";
+import {
+  updateAthleteSchema,
+  type UpdateAthleteInput,
+} from "@/lib/validation/athlete";
 
 // Next.js 16: params is a Promise — must be awaited.
 type RouteContext = { params: Promise<{ id: string }> };
@@ -11,6 +14,22 @@ const NOT_FOUND_ERROR_CODE = "PGRST116";
 
 function isNotFoundError(error: { code?: string } | null): boolean {
   return error?.code === NOT_FOUND_ERROR_CODE;
+}
+
+function normalizeEmptyOptionFields(
+  input: UpdateAthleteInput,
+): UpdateAthleteInput {
+  const normalized: UpdateAthleteInput = { ...input };
+  for (const key of [
+    "goal",
+    "current_phase",
+    "training_start_date",
+  ] as const) {
+    if (normalized[key] === "") {
+      delete normalized[key];
+    }
+  }
+  return normalized;
 }
 
 /**
@@ -86,10 +105,11 @@ export async function PATCH(
       { status: 400 },
     );
   }
+  const normalized = normalizeEmptyOptionFields(parsed.data);
 
   const { data, error } = await supabase
     .from("athletes")
-    .update(parsed.data)
+    .update(normalized)
     .eq("id", id)
     .select()
     .single();
