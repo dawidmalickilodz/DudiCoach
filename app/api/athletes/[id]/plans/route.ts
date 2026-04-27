@@ -2,7 +2,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAuth } from "@/lib/api/auth-guard";
-import { generatePlan } from "@/lib/ai/client";
+import {
+  ANTHROPIC_TIMEOUT_MS,
+  generatePlan,
+  MODEL,
+  PLAN_MAX_TOKENS,
+} from "@/lib/ai/client";
 import { parsePlanJson } from "@/lib/ai/parse-plan-json";
 import {
   buildSystemPrompt,
@@ -16,6 +21,9 @@ import { createClient } from "@/lib/supabase/server";
 
 // Next.js 16: params is a Promise — must be awaited.
 type RouteContext = { params: Promise<{ id: string }> };
+
+// Keep enough runtime budget for long first-plan generations.
+export const maxDuration = 180;
 
 // ---------------------------------------------------------------------------
 // Retry configuration
@@ -164,6 +172,11 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
   if (rawText === null) {
     // Map Anthropic / network errors to appropriate HTTP responses
     if (lastError instanceof Anthropic.APIConnectionTimeoutError) {
+      console.error("[POST /plans] Anthropic request timeout", {
+        model: MODEL,
+        maxTokens: PLAN_MAX_TOKENS,
+        timeoutMs: ANTHROPIC_TIMEOUT_MS,
+      });
       return NextResponse.json(
         { error: "Przekroczono czas. Spróbuj ponownie." },
         { status: 504 },

@@ -2,13 +2,16 @@ import Anthropic from "@anthropic-ai/sdk";
 
 // ---------------------------------------------------------------------------
 // Anthropic SDK singleton — one instance per Node.js process.
-// Timeout is 60s total per the US-005 spec (AC-5).
+// Timeout is 120s total to avoid production timeouts on first-plan generation.
 // Model defaults to claude-sonnet-4-6; override via ANTHROPIC_MODEL env var.
 // ---------------------------------------------------------------------------
 
+export const ANTHROPIC_TIMEOUT_MS = 120_000;
+export const PLAN_MAX_TOKENS = 8000;
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
-  timeout: 60_000,
+  timeout: ANTHROPIC_TIMEOUT_MS,
 });
 
 export const MODEL =
@@ -29,14 +32,14 @@ export interface GeneratePlanParams {
  * extraction and validation.
  *
  * Throws:
- *  - `Anthropic.APIConnectionTimeoutError` when the 60s timeout is exceeded
+ *  - `Anthropic.APIConnectionTimeoutError` when timeout is exceeded
  *  - `Anthropic.APIError` for HTTP-level errors from the Anthropic API
  *  - `Error` if the response contains no text block
  */
 export async function generatePlan(params: GeneratePlanParams): Promise<string> {
   const response = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 8000,
+    max_tokens: PLAN_MAX_TOKENS,
     temperature: 0.7,
     system: [
       {
