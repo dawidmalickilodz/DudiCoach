@@ -55,6 +55,7 @@ export function useAutoSave<TFormValues extends FieldValues>({
     undefined,
   );
   const isFirstRender = useRef(true);
+  const latestValuesRef = useRef<TFormValues | null>(null);
 
   // Stable ref for mutationFn to avoid re-subscribing on every render
   const mutationFnRef = useRef(mutationFn);
@@ -67,28 +68,36 @@ export function useAutoSave<TFormValues extends FieldValues>({
 
   useEffect(() => {
     const subscription = watch((formValues) => {
+      latestValuesRef.current = formValues as TFormValues;
       // Skip the very first fire — form just loaded server data via reset()
       if (isFirstRender.current) {
         isFirstRender.current = false;
         return;
       }
 
-      // Skip if the form currently has validation errors
-      if (Object.keys(errorsRef.current).length > 0) return;
-
       // Clear any in-flight debounce timer
       if (timeoutRef.current !== undefined) {
         clearTimeout(timeoutRef.current);
       }
 
+      // Skip if the form currently has validation errors
+      if (Object.keys(errorsRef.current).length > 0) return;
+
       // Schedule the save
       timeoutRef.current = setTimeout(() => {
+        // Guard again at execution time: the form may have become invalid
+        // after scheduling (e.g. intermediate numeric typing state).
+        if (Object.keys(errorsRef.current).length > 0) return;
+
+        const latestValues = latestValuesRef.current;
+        if (!latestValues) return;
+
         setIsSaving(true);
         setSaveError(null);
 
         void (async () => {
           try {
-            await mutationFnRef.current(formValues as TFormValues);
+            await mutationFnRef.current(latestValues);
             setLastSavedAt(new Date());
           } catch (err) {
             const message = normalizeApiError(
