@@ -36,6 +36,18 @@ function makeFormState(hasErrors = false) {
   } as ReturnType<typeof import("react-hook-form").useForm>["formState"];
 }
 
+function makeMutableFormState() {
+  const state = {
+    errors: {},
+  } as ReturnType<typeof import("react-hook-form").useForm>["formState"];
+
+  function setErrors(next: Record<string, unknown>) {
+    state.errors = next as typeof state.errors;
+  }
+
+  return { state, setErrors };
+}
+
 function makeSetError() {
   return vi.fn() as ReturnType<typeof import("react-hook-form").useForm>["setError"];
 }
@@ -248,6 +260,98 @@ describe("useAutoSave", () => {
     });
 
     expect(mutationFn).not.toHaveBeenCalled();
+  });
+
+  it("replaces stale intermediate numeric snapshot and saves the final valid value (60, not 6)", async () => {
+    const { watch, triggerChange } = makeMockWatch();
+    const { state, setErrors } = makeMutableFormState();
+    const setError = makeSetError();
+    const mutationFn = vi.fn().mockImplementation(async (payload: Record<string, unknown>) => {
+      const weight = payload.weight_kg as number | undefined;
+      if (typeof weight === "number" && weight < 30) {
+        throw new Error("Validation failed");
+      }
+      return undefined;
+    });
+
+    const { result, rerender } = renderHook(
+      ({ formState }) =>
+        useAutoSave({
+          watch,
+          formState,
+          setError,
+          mutationFn: mutationFn as (data: FieldValues) => Promise<unknown>,
+        }),
+      { initialProps: { formState: state } },
+    );
+
+    // Skip first-render callback.
+    act(() => triggerChange({ weight_kg: 75 }));
+
+    // User starts typing "60" and an intermediate "6" appears first.
+    act(() => triggerChange({ weight_kg: 6 }));
+
+    // Validation reports the intermediate value as invalid. Next keystroke to
+    // "60" arrives while form still has error state.
+    setErrors({ weight_kg: { message: "too low" } });
+    rerender({ formState: state });
+    act(() => triggerChange({ weight_kg: 60 }));
+
+    // Old timer for "6" must be canceled (no stale request).
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+    expect(mutationFn).not.toHaveBeenCalled();
+
+    // Validation catches up: form is valid, so latest value should be saved.
+    setErrors({});
+    rerender({ formState: state });
+    act(() => triggerChange({ weight_kg: 60 }));
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+
+    expect(mutationFn).toHaveBeenCalledTimes(1);
+    expect(mutationFn).toHaveBeenCalledWith(
+      expect.objectContaining({ weight_kg: 60 }),
+    );
+    expect(result.current.saveError).toBeNull();
+  });
+
+  it("skips mutation at execution time when form becomes invalid after scheduling", async () => {
+    const { watch, triggerChange } = makeMockWatch();
+    const { state, setErrors } = makeMutableFormState();
+    const mutationFn = vi.fn().mockResolvedValue(undefined);
+
+    const { result, rerender } = renderHook(
+      ({ formState }) =>
+        useAutoSave({
+          watch,
+          formState,
+          setError: makeSetError(),
+          mutationFn,
+        }),
+      { initialProps: { formState: state } },
+    );
+
+    // Skip first-render callback.
+    act(() => triggerChange({ weight_kg: 75 }));
+
+    // Schedule save while valid.
+    act(() => triggerChange({ weight_kg: 60 }));
+
+    // Form turns invalid before debounce executes.
+    setErrors({ weight_kg: { message: "too low" } });
+    rerender({ formState: state });
+
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+
+    expect(mutationFn).not.toHaveBeenCalled();
+    expect(result.current.saveError).toBeNull();
+    expect(result.current.isSaving).toBe(false);
   });
 
   // ---- isSaving state -------------------------------------------------------
