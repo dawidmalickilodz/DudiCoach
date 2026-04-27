@@ -361,6 +361,11 @@ describe("createAthleteSchema", () => {
       const result = createAthleteSchema.safeParse({ name: "Jan" });
       expect(result.success).toBe(true);
     });
+
+    it("accepts goal: '' (select empty option)", () => {
+      const result = createAthleteSchema.safeParse({ name: "Jan", goal: "" });
+      expect(result.success).toBe(true);
+    });
   });
 
   // ---- current_phase validation ----
@@ -393,6 +398,14 @@ describe("createAthleteSchema", () => {
       });
       expect(result.success).toBe(true);
     });
+
+    it("accepts current_phase: '' (select empty option)", () => {
+      const result = createAthleteSchema.safeParse({
+        name: "Jan",
+        current_phase: "",
+      });
+      expect(result.success).toBe(true);
+    });
   });
 });
 
@@ -418,6 +431,15 @@ describe("updateAthleteSchema", () => {
 
   it("name is optional (PATCH does not require name re-send)", () => {
     const result = updateAthleteSchema.safeParse({ sport: "Bieganie" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts empty select/date values in PATCH payload", () => {
+    const result = updateAthleteSchema.safeParse({
+      goal: "",
+      current_phase: "",
+      training_start_date: "",
+    });
     expect(result.success).toBe(true);
   });
 

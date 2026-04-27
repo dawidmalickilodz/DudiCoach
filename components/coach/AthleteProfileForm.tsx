@@ -339,6 +339,10 @@ function buildDefaultValues(athlete: Athlete): UpdateAthleteInput {
   const validGoal = TRAINING_GOALS.includes(storedGoal as TrainingGoal)
     ? (storedGoal as TrainingGoal)
     : undefined;
+  const storedPhase = athlete.current_phase;
+  const validCurrentPhase = CURRENT_PHASES.includes(storedPhase as CurrentPhase)
+    ? (storedPhase as CurrentPhase)
+    : undefined;
 
   return {
     name: athlete.name ?? "",
@@ -349,7 +353,7 @@ function buildDefaultValues(athlete: Athlete): UpdateAthleteInput {
     training_start_date: athlete.training_start_date ?? undefined,
     training_days_per_week: athlete.training_days_per_week ?? undefined,
     session_minutes: athlete.session_minutes ?? undefined,
-    current_phase: (athlete.current_phase as CurrentPhase | null) ?? undefined,
+    current_phase: validCurrentPhase,
     goal: validGoal,
     notes: athlete.notes ?? undefined,
   };

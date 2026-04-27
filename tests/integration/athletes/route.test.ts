@@ -412,6 +412,26 @@ describe("PATCH /api/athletes/[id]", () => {
     expect(response.status).toBe(200);
     expect(json.data.weight_kg).toBe(78.0);
   });
+  it("authenticated + empty select/date values are normalized and do not fail validation", async () => {
+    setupAuthenticated();
+    const builder = makeBuilder({ data: mockAthlete, error: null });
+    mockFrom.mockReturnValue(builder);
+
+    const req = makeRequest(
+      "http://localhost/api/athletes/athlete-uuid-001",
+      "PATCH",
+      { goal: "", current_phase: "", training_start_date: "" },
+    );
+    const response = await PATCH(
+      req as Parameters<typeof PATCH>[0],
+      routeContext("athlete-uuid-001"),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.data).toEqual(mockAthlete);
+    expect(builder["update"]).toHaveBeenCalledWith({});
+  });
 
   it("authenticated + invalid body (age: -1) → 400 validation error", async () => {
     setupAuthenticated();
@@ -561,3 +581,4 @@ describe("DELETE /api/athletes/[id]", () => {
     expect(mockFrom).not.toHaveBeenCalled();
   });
 });
+

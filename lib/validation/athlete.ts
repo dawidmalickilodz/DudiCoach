@@ -33,10 +33,11 @@ export const createAthleteSchema = z.object({
     .nullable()
     .optional(),
   sport: z.string().nullable().optional(),
-  training_start_date: z
-    .string() // ISO date string "YYYY-MM-DD"
-    .nullable()
-    .optional(),
+  training_start_date: z.union([
+    z.string(), // ISO date string "YYYY-MM-DD"
+    z.null(),
+    z.literal(""),
+  ]).optional(),
   training_days_per_week: z
     .number()
     .int()
@@ -51,8 +52,8 @@ export const createAthleteSchema = z.object({
     .max(180, pl.validation.sessionMinutesRange)
     .nullable()
     .optional(),
-  current_phase: z.enum(CURRENT_PHASES).nullable().optional(),
-  goal: z.enum(TRAINING_GOALS).nullable().optional(),
+  current_phase: z.union([z.enum(CURRENT_PHASES), z.null(), z.literal("")]).optional(),
+  goal: z.union([z.enum(TRAINING_GOALS), z.null(), z.literal("")]).optional(),
   notes: z.string().nullable().optional(),
 });
 
