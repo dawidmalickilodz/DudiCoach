@@ -11,6 +11,7 @@ import { parsePlanJson } from "@/lib/ai/parse-plan-json";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const WORKER_SECRET_HEADER = "x-plan-jobs-worker-secret";
+const AUTHORIZATION_HEADER = "authorization";
 const RETRYABLE_STATUS_CODES = new Set([500, 502, 503, 529]);
 const CLAIM_LOCK_SECONDS = 120;
 
@@ -33,6 +34,16 @@ function secureEquals(a: string, b: string) {
   const right = Buffer.from(b);
   if (left.length !== right.length) return false;
   return timingSafeEqual(left, right);
+}
+
+function extractIncomingSecret(request: NextRequest) {
+  const direct = request.headers.get(WORKER_SECRET_HEADER);
+  if (direct) return direct;
+
+  const authHeader = request.headers.get(AUTHORIZATION_HEADER);
+  if (!authHeader) return null;
+  if (!authHeader.toLowerCase().startsWith("bearer ")) return null;
+  return authHeader.slice("bearer ".length).trim();
 }
 
 function sanitizeMessage(input: unknown) {
@@ -98,7 +109,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const incomingSecret = request.headers.get(WORKER_SECRET_HEADER);
+  const incomingSecret = extractIncomingSecret(request);
   if (!incomingSecret || !secureEquals(incomingSecret, expectedSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

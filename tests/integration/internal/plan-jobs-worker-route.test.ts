@@ -93,6 +93,22 @@ describe("POST /api/internal/plans/jobs/run", () => {
     expect(mockRpc).not.toHaveBeenCalled();
   });
 
+  it("accepts bearer token secret for cron-style auth", async () => {
+    mockRpc.mockResolvedValueOnce({ data: [], error: null });
+    const request = new Request("http://localhost/api/internal/plans/jobs/run", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${WORKER_SECRET}`,
+      },
+    });
+
+    const response = await POST(request as Parameters<typeof POST>[0]);
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.processed).toBe(false);
+  });
+
   it("returns 500 when claim RPC fails", async () => {
     mockRpc.mockResolvedValueOnce({
       data: null,
