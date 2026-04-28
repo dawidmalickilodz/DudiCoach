@@ -24,10 +24,12 @@ vi.mock("@/lib/ai/parse-plan-json", () => ({
   parsePlanJson: (...args: unknown[]) => mockParsePlanJson(...args),
 }));
 
-import { POST } from "@/app/api/internal/plans/jobs/run/route";
+import { GET, POST } from "@/app/api/internal/plans/jobs/run/route";
 
 const ORIGINAL_WORKER_SECRET = process.env.PLAN_JOBS_WORKER_SECRET;
+const ORIGINAL_CRON_SECRET = process.env.CRON_SECRET;
 const WORKER_SECRET = "test-worker-secret";
+const CRON_SECRET = "test-cron-secret";
 
 const CLAIMED_JOB = {
   id: "job-uuid-001",
@@ -44,13 +46,24 @@ const CLAIMED_JOB = {
   max_attempts: 3,
 };
 
-function makeRequest(secret?: string) {
+function makeRequest({
+  method = "POST",
+  workerSecret,
+  bearer,
+}: {
+  method?: "GET" | "POST";
+  workerSecret?: string;
+  bearer?: string;
+} = {}) {
   const headers = new Headers();
-  if (secret) {
-    headers.set("x-plan-jobs-worker-secret", secret);
+  if (workerSecret) {
+    headers.set("x-plan-jobs-worker-secret", workerSecret);
+  }
+  if (bearer) {
+    headers.set("authorization", `Bearer ${bearer}`);
   }
   return new Request("http://localhost/api/internal/plans/jobs/run", {
-    method: "POST",
+    method,
     headers,
   });
 }
@@ -58,6 +71,7 @@ function makeRequest(secret?: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.PLAN_JOBS_WORKER_SECRET = WORKER_SECRET;
+  process.env.CRON_SECRET = CRON_SECRET;
 });
 
 afterEach(() => {
@@ -66,6 +80,62 @@ afterEach(() => {
   } else {
     process.env.PLAN_JOBS_WORKER_SECRET = ORIGINAL_WORKER_SECRET;
   }
+
+  if (ORIGINAL_CRON_SECRET == null) {
+    delete process.env.CRON_SECRET;
+  } else {
+    process.env.CRON_SECRET = ORIGINAL_CRON_SECRET;
+  }
+});
+
+describe("GET /api/internal/plans/jobs/run", () => {
+  it("returns 500 when CRON_SECRET env is missing", async () => {
+    delete process.env.CRON_SECRET;
+
+    const response = await GET(makeRequest({ method: "GET" }) as Parameters<typeof GET>[0]);
+    const json = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(json.error).toBe("Worker misconfigured");
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 when cron bearer is missing", async () => {
+    const response = await GET(makeRequest({ method: "GET" }) as Parameters<typeof GET>[0]);
+    const json = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(json.error).toBe("Unauthorized");
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 when cron bearer is invalid", async () => {
+    const response = await GET(
+      makeRequest({ method: "GET", bearer: "wrong-cron-secret" }) as Parameters<
+        typeof GET
+      >[0],
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(json.error).toBe("Unauthorized");
+    expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it("accepts CRON_SECRET bearer and processes claims", async () => {
+    mockRpc.mockResolvedValueOnce({ data: [], error: null });
+
+    const response = await GET(
+      makeRequest({ method: "GET", bearer: CRON_SECRET }) as Parameters<typeof GET>[0],
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.processed).toBe(false);
+    expect(mockRpc).toHaveBeenCalledWith("claim_pending_plan_generation_job", {
+      p_lock_seconds: 120,
+    });
+  });
 });
 
 describe("POST /api/internal/plans/jobs/run", () => {
@@ -73,7 +143,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
     delete process.env.PLAN_JOBS_WORKER_SECRET;
 
     const response = await POST(
-      makeRequest(WORKER_SECRET) as Parameters<typeof POST>[0],
+      makeRequest({ workerSecret: WORKER_SECRET }) as Parameters<typeof POST>[0],
     );
     const json = await response.json();
 
@@ -84,7 +154,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
 
   it("returns 401 when secret header is missing/invalid", async () => {
     const response = await POST(
-      makeRequest("wrong-secret") as Parameters<typeof POST>[0],
+      makeRequest({ workerSecret: "wrong-secret" }) as Parameters<typeof POST>[0],
     );
     const json = await response.json();
 
@@ -93,14 +163,9 @@ describe("POST /api/internal/plans/jobs/run", () => {
     expect(mockRpc).not.toHaveBeenCalled();
   });
 
-  it("accepts bearer token secret for cron-style auth", async () => {
+  it("accepts bearer token secret for manual/internal POST auth", async () => {
     mockRpc.mockResolvedValueOnce({ data: [], error: null });
-    const request = new Request("http://localhost/api/internal/plans/jobs/run", {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${WORKER_SECRET}`,
-      },
-    });
+    const request = makeRequest({ bearer: WORKER_SECRET });
 
     const response = await POST(request as Parameters<typeof POST>[0]);
     const json = await response.json();
@@ -116,7 +181,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
     });
 
     const response = await POST(
-      makeRequest(WORKER_SECRET) as Parameters<typeof POST>[0],
+      makeRequest({ workerSecret: WORKER_SECRET }) as Parameters<typeof POST>[0],
     );
     const json = await response.json();
 
@@ -128,7 +193,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
     mockRpc.mockResolvedValueOnce({ data: [], error: null });
 
     const response = await POST(
-      makeRequest(WORKER_SECRET) as Parameters<typeof POST>[0],
+      makeRequest({ workerSecret: WORKER_SECRET }) as Parameters<typeof POST>[0],
     );
     const json = await response.json();
 
@@ -148,7 +213,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
       });
 
     const response = await POST(
-      makeRequest(WORKER_SECRET) as Parameters<typeof POST>[0],
+      makeRequest({ workerSecret: WORKER_SECRET }) as Parameters<typeof POST>[0],
     );
     const json = await response.json();
 
@@ -177,7 +242,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
     mockGeneratePlan.mockRejectedValueOnce(retryableError);
 
     const response = await POST(
-      makeRequest(WORKER_SECRET) as Parameters<typeof POST>[0],
+      makeRequest({ workerSecret: WORKER_SECRET }) as Parameters<typeof POST>[0],
     );
     const json = await response.json();
 
@@ -205,7 +270,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
     });
 
     const response = await POST(
-      makeRequest(WORKER_SECRET) as Parameters<typeof POST>[0],
+      makeRequest({ workerSecret: WORKER_SECRET }) as Parameters<typeof POST>[0],
     );
     const json = await response.json();
 
@@ -246,7 +311,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
     });
 
     const response = await POST(
-      makeRequest(WORKER_SECRET) as Parameters<typeof POST>[0],
+      makeRequest({ workerSecret: WORKER_SECRET }) as Parameters<typeof POST>[0],
     );
     const json = await response.json();
 
