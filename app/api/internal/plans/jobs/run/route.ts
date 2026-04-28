@@ -6,7 +6,7 @@ import {
   type PlanJobPromptInputs,
   planJobPromptInputsSchema,
 } from "@/lib/api/plan-jobs";
-import { generatePlan } from "@/lib/ai/client";
+import { generatePlan, repairPlanJson } from "@/lib/ai/client";
 import { parsePlanJson } from "@/lib/ai/parse-plan-json";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -73,6 +73,13 @@ function classifyErrorCode(error: unknown, stage: "prompt" | "generation" | "par
   if (error instanceof Anthropic.APIConnectionTimeoutError) return "provider_timeout";
   if (error instanceof Anthropic.APIError) return "provider_api_error";
   return "generation_unexpected_error";
+}
+
+function isJsonParseFailure(error: unknown) {
+  return (
+    error instanceof Error &&
+    error.message.startsWith("Failed to parse JSON from Claude response:")
+  );
 }
 
 async function failJob(
@@ -163,16 +170,40 @@ async function runWorker(routeLabel: string) {
   try {
     parsedPlan = parsePlanJson(rawPlan);
   } catch (error) {
-    await failJob(
-      claimedJob,
-      classifyErrorCode(error, "parse"),
-      sanitizeMessage(error),
-      false,
-    );
-    return NextResponse.json(
-      { processed: true, status: "failed", jobId: claimedJob.id },
-      { status: 200 },
-    );
+    if (!isJsonParseFailure(error)) {
+      await failJob(
+        claimedJob,
+        classifyErrorCode(error, "parse"),
+        sanitizeMessage(error),
+        false,
+      );
+      return NextResponse.json(
+        { processed: true, status: "failed", jobId: claimedJob.id },
+        { status: 200 },
+      );
+    }
+
+    console.warn(`[${routeLabel}] Initial plan parse failed; attempting one JSON repair pass`, {
+      jobId: claimedJob.id,
+      message: sanitizeMessage(error),
+    });
+
+    try {
+      const repairedRawPlan = await repairPlanJson(rawPlan);
+      parsedPlan = parsePlanJson(repairedRawPlan);
+    } catch (repairError) {
+      const finalErrorMessage = sanitizeMessage(repairError);
+      await failJob(
+        claimedJob,
+        classifyErrorCode(repairError, "parse"),
+        finalErrorMessage,
+        false,
+      );
+      return NextResponse.json(
+        { processed: true, status: "failed", jobId: claimedJob.id },
+        { status: 200 },
+      );
+    }
   }
 
   const { data: completedData, error: completeError } = await supabase.rpc(
