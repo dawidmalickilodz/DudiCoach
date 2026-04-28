@@ -3,8 +3,14 @@
 import { pl } from "@/lib/i18n/pl";
 import { cn } from "@/lib/utils";
 
+export type GeneratePlanButtonState =
+  | "idle"
+  | "posting"
+  | "queued"
+  | "processing";
+
 interface GeneratePlanButtonProps {
-  isGenerating: boolean;
+  state: GeneratePlanButtonState;
   disabled?: boolean;
   onGenerate: () => void;
 }
@@ -15,11 +21,22 @@ interface GeneratePlanButtonProps {
  * Disabled while generating or when explicitly disabled.
  */
 export default function GeneratePlanButton({
-  isGenerating,
+  state,
   disabled = false,
   onGenerate,
 }: GeneratePlanButtonProps) {
-  const isDisabled = isGenerating || disabled;
+  const isBusy = state !== "idle";
+  const isDisabled = isBusy || disabled;
+  const label =
+    state === "idle"
+      ? pl.coach.athlete.plans.generateButton
+      : state === "processing"
+        ? pl.coach.athlete.plans.processing
+        : pl.coach.athlete.plans.queued;
+  const hint =
+    state === "processing"
+      ? pl.coach.athlete.plans.processingHint
+      : pl.coach.athlete.plans.queuedHint;
 
   return (
     <div className="flex flex-col items-start gap-1">
@@ -34,20 +51,18 @@ export default function GeneratePlanButton({
           isDisabled && "cursor-not-allowed opacity-60",
         )}
       >
-        {isGenerating && (
+        {isBusy && (
           <span
             aria-hidden="true"
             className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent"
           />
         )}
-        {isGenerating
-          ? pl.coach.athlete.plans.generating
-          : pl.coach.athlete.plans.generateButton}
+        {label}
       </button>
 
-      {isGenerating && (
+      {isBusy && (
         <p className="text-muted-foreground text-xs">
-          {pl.coach.athlete.plans.generatingHint}
+          {hint}
         </p>
       )}
     </div>

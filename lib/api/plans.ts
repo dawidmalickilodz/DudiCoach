@@ -4,6 +4,7 @@
  */
 
 import type { TrainingPlanJson } from "@/lib/validation/training-plan";
+import type { Enums } from "@/lib/supabase/database.types";
 
 // ---------------------------------------------------------------------------
 // TrainingPlan type — mirrors the training_plans table row with typed plan_json
@@ -16,6 +17,23 @@ export interface TrainingPlan {
   phase: string | null;
   plan_json: TrainingPlanJson;
   created_at: string;
+}
+
+export type PlanJobStatus = Enums<"plan_generation_job_status">;
+
+export interface PlanGenerationJob {
+  id: string;
+  athlete_id: string;
+  status: PlanJobStatus;
+  attempt_count: number;
+  max_attempts: number;
+  plan_id: string | null;
+  error_code: string | null;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+  failed_at: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,6 +61,13 @@ export class TimeoutError extends Error {
   }
 }
 
+export class DuplicateActiveJobError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DuplicateActiveJobError";
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Query key factory
 // ---------------------------------------------------------------------------
@@ -52,6 +77,11 @@ export const planKeys = {
   byAthlete: (athleteId: string) =>
     [...planKeys.all, "athlete", athleteId] as const,
   detail: (planId: string) => [...planKeys.all, "detail", planId] as const,
+};
+
+export const planJobKeys = {
+  all: ["plan-jobs"] as const,
+  detail: (jobId: string) => [...planJobKeys.all, "detail", jobId] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -97,5 +127,54 @@ export async function generatePlan(athleteId: string): Promise<TrainingPlan> {
   }
 
   const json = (await res.json()) as { data: TrainingPlan };
+  return json.data;
+}
+
+export async function startPlanGenerationJob(
+  athleteId: string,
+): Promise<PlanGenerationJob> {
+  const res = await fetch("/api/coach/plans/jobs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ athleteId }),
+  });
+
+  if (res.status === 409) {
+    const json = (await res.json()) as { error?: string };
+    throw new DuplicateActiveJobError(
+      json.error ?? "Plan generation is already in progress",
+    );
+  }
+
+  if (res.status === 422) {
+    const json = (await res.json()) as { error?: string };
+    throw new IncompleteDataError(json.error ?? "Incomplete data");
+  }
+
+  if (res.status === 429) {
+    const json = (await res.json()) as { error?: string };
+    throw new RateLimitError(json.error ?? "Rate limit exceeded");
+  }
+
+  if (!res.ok) {
+    const json = (await res.json()) as { error?: string };
+    throw new Error(json.error ?? "Failed to start plan generation job");
+  }
+
+  const json = (await res.json()) as { data: PlanGenerationJob };
+  return json.data;
+}
+
+export async function fetchPlanGenerationJobStatus(
+  jobId: string,
+): Promise<PlanGenerationJob> {
+  const res = await fetch(`/api/coach/plans/jobs/${jobId}`);
+
+  if (!res.ok) {
+    const json = (await res.json()) as { error?: string };
+    throw new Error(json.error ?? "Failed to fetch plan generation job status");
+  }
+
+  const json = (await res.json()) as { data: PlanGenerationJob };
   return json.data;
 }
