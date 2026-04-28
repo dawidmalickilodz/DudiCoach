@@ -62,9 +62,149 @@ export interface GeneratePlanParams {
   userPrompt: string;
 }
 
+export interface PlanGenerationMetadata {
+  mode: "text" | "repair" | "structured_tool";
+  stopReason: string | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  textLength: number | null;
+  toolInputLength: number | null;
+}
+
+export interface GeneratePlanWithMetadataResult {
+  text: string;
+  metadata: PlanGenerationMetadata;
+}
+
 interface ExtractedTextBlock {
   type: "text";
   text: string;
+}
+
+const PLAN_OUTPUT_TOOL_NAME = "submit_training_plan";
+
+const TRAINING_PLAN_TOOL_SCHEMA: Anthropic.Messages.Tool["input_schema"] = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    planName: { type: "string" },
+    phase: { type: "string" },
+    summary: { type: "string" },
+    weeklyOverview: { type: "string" },
+    weeks: {
+      type: "array",
+      minItems: 4,
+      maxItems: 4,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          weekNumber: { type: "integer", minimum: 1, maximum: 4 },
+          focus: { type: "string" },
+          days: {
+            type: "array",
+            minItems: 1,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                dayNumber: { type: "integer", minimum: 1, maximum: 7 },
+                dayName: { type: "string" },
+                warmup: { type: "string" },
+                exercises: {
+                  type: "array",
+                  minItems: 1,
+                  maxItems: 4,
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      name: { type: "string" },
+                      sets: { type: "string" },
+                      reps: { type: "string" },
+                      intensity: { type: "string" },
+                      rest: { type: "string" },
+                      tempo: { type: "string" },
+                      notes: { type: "string" },
+                    },
+                    required: [
+                      "name",
+                      "sets",
+                      "reps",
+                      "intensity",
+                      "rest",
+                      "tempo",
+                      "notes",
+                    ],
+                  },
+                },
+                cooldown: { type: "string" },
+                duration: { type: "string" },
+              },
+              required: [
+                "dayNumber",
+                "dayName",
+                "warmup",
+                "exercises",
+                "cooldown",
+                "duration",
+              ],
+            },
+          },
+        },
+        required: ["weekNumber", "focus", "days"],
+      },
+    },
+    progressionNotes: { type: "string" },
+    nutritionTips: { type: "string" },
+    recoveryProtocol: { type: "string" },
+  },
+  required: [
+    "planName",
+    "phase",
+    "summary",
+    "weeklyOverview",
+    "weeks",
+    "progressionNotes",
+    "nutritionTips",
+    "recoveryProtocol",
+  ],
+};
+
+const PLAN_OUTPUT_TOOL: Anthropic.Messages.Tool = {
+  name: PLAN_OUTPUT_TOOL_NAME,
+  description:
+    "Submit the final full training plan as one JSON object following the required schema.",
+  input_schema: TRAINING_PLAN_TOOL_SCHEMA,
+  strict: true,
+  type: "custom",
+};
+
+type ToolUseBlock = Extract<Anthropic.Messages.ContentBlock, { type: "tool_use" }>;
+
+function toMetadata(
+  response: Anthropic.Messages.Message,
+  mode: PlanGenerationMetadata["mode"],
+  {
+    text,
+    toolInput,
+  }: {
+    text?: string | null;
+    toolInput?: unknown;
+  } = {},
+): PlanGenerationMetadata {
+  const textLength = typeof text === "string" ? text.length : null;
+  const toolInputLength =
+    toolInput == null ? null : JSON.stringify(toolInput).length;
+
+  return {
+    mode,
+    stopReason: response.stop_reason ?? null,
+    inputTokens: response.usage?.input_tokens ?? null,
+    outputTokens: response.usage?.output_tokens ?? null,
+    textLength,
+    toolInputLength,
+  };
 }
 
 function extractTextFromResponse(response: Anthropic.Messages.Message): string {
@@ -76,6 +216,71 @@ function extractTextFromResponse(response: Anthropic.Messages.Message): string {
   }
 
   return textBlock.text;
+}
+
+function extractToolInputFromResponse(response: Anthropic.Messages.Message): unknown {
+  const toolUse = response.content.find(
+    (block): block is ToolUseBlock =>
+      block.type === "tool_use" && block.name === PLAN_OUTPUT_TOOL_NAME,
+  );
+  if (!toolUse) {
+    throw new Error("No structured tool output in Claude response");
+  }
+  return toolUse.input;
+}
+
+export async function generatePlanStructured(
+  params: GeneratePlanParams,
+): Promise<{ plan: unknown; metadata: PlanGenerationMetadata }> {
+  const response = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: PLAN_MAX_TOKENS,
+    temperature: 0,
+    system: [
+      {
+        type: "text",
+        text: params.systemPrompt,
+        cache_control: { type: "ephemeral" },
+      },
+    ],
+    messages: [{ role: "user", content: params.userPrompt }],
+    tools: [PLAN_OUTPUT_TOOL],
+    tool_choice: {
+      type: "tool",
+      name: PLAN_OUTPUT_TOOL_NAME,
+      disable_parallel_tool_use: true,
+    },
+  });
+
+  const plan = extractToolInputFromResponse(response);
+  return {
+    plan,
+    metadata: toMetadata(response, "structured_tool", { toolInput: plan }),
+  };
+}
+
+export async function generatePlanWithMetadata(
+  params: GeneratePlanParams,
+): Promise<GeneratePlanWithMetadataResult> {
+  const response = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: PLAN_MAX_TOKENS,
+    temperature: 0.7,
+    system: [
+      {
+        type: "text",
+        text: params.systemPrompt,
+        cache_control: { type: "ephemeral" },
+      },
+    ],
+    messages: [{ role: "user", content: params.userPrompt }],
+  });
+
+  const text = extractTextFromResponse(response);
+  return {
+    text,
+    metadata: toMetadata(response, "text", { text }),
+  };
 }
 
 /**
@@ -93,21 +298,8 @@ function extractTextFromResponse(response: Anthropic.Messages.Message): string {
  *  - `Error` if the response contains no text block
  */
 export async function generatePlan(params: GeneratePlanParams): Promise<string> {
-  const response = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: PLAN_MAX_TOKENS,
-    temperature: 0.7,
-    system: [
-      {
-        type: "text",
-        text: params.systemPrompt,
-        cache_control: { type: "ephemeral" },
-      },
-    ],
-    messages: [{ role: "user", content: params.userPrompt }],
-  });
-
-  return extractTextFromResponse(response);
+  const result = await generatePlanWithMetadata(params);
+  return result.text;
 }
 
 /**
@@ -117,6 +309,13 @@ export async function generatePlan(params: GeneratePlanParams): Promise<string> 
  * strict: callers must still parse and validate the repaired output.
  */
 export async function repairPlanJson(rawPlanText: string): Promise<string> {
+  const result = await repairPlanJsonWithMetadata(rawPlanText);
+  return result.text;
+}
+
+export async function repairPlanJsonWithMetadata(
+  rawPlanText: string,
+): Promise<GeneratePlanWithMetadataResult> {
   const response = await anthropic.messages.create({
     model: MODEL,
     max_tokens: PLAN_MAX_TOKENS,
@@ -146,5 +345,9 @@ export async function repairPlanJson(rawPlanText: string): Promise<string> {
     ],
   });
 
-  return extractTextFromResponse(response);
+  const text = extractTextFromResponse(response);
+  return {
+    text,
+    metadata: toMetadata(response, "repair", { text }),
+  };
 }

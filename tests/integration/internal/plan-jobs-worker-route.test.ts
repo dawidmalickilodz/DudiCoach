@@ -3,12 +3,25 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { afterEach, beforeEach, vi } from "vitest";
 
-const { mockRpc, mockGeneratePlan, mockRepairPlanJson, mockParsePlanJson } = vi.hoisted(() => {
+const {
+  mockRpc,
+  mockGeneratePlanStructured,
+  mockGeneratePlanWithMetadata,
+  mockRepairPlanJsonWithMetadata,
+  mockParsePlanJson,
+} = vi.hoisted(() => {
   const mockRpc = vi.fn();
-  const mockGeneratePlan = vi.fn();
-  const mockRepairPlanJson = vi.fn();
+  const mockGeneratePlanStructured = vi.fn();
+  const mockGeneratePlanWithMetadata = vi.fn();
+  const mockRepairPlanJsonWithMetadata = vi.fn();
   const mockParsePlanJson = vi.fn();
-  return { mockRpc, mockGeneratePlan, mockRepairPlanJson, mockParsePlanJson };
+  return {
+    mockRpc,
+    mockGeneratePlanStructured,
+    mockGeneratePlanWithMetadata,
+    mockRepairPlanJsonWithMetadata,
+    mockParsePlanJson,
+  };
 });
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -18,8 +31,9 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 vi.mock("@/lib/ai/client", () => ({
-  generatePlan: (...args: unknown[]) => mockGeneratePlan(...args),
-  repairPlanJson: (...args: unknown[]) => mockRepairPlanJson(...args),
+  generatePlanStructured: (...args: unknown[]) => mockGeneratePlanStructured(...args),
+  generatePlanWithMetadata: (...args: unknown[]) => mockGeneratePlanWithMetadata(...args),
+  repairPlanJsonWithMetadata: (...args: unknown[]) => mockRepairPlanJsonWithMetadata(...args),
 }));
 
 vi.mock("@/lib/ai/parse-plan-json", () => ({
@@ -50,6 +64,40 @@ const CLAIMED_JOB = {
   max_attempts: 3,
 };
 
+const VALID_STRUCTURED_PLAN = {
+  planName: "Plan testowy",
+  phase: "Bazowy",
+  summary: "Krotkie podsumowanie planu.",
+  weeklyOverview: "4 tygodnie po 1 dniu.",
+  weeks: [1, 2, 3, 4].map((weekNumber) => ({
+    weekNumber,
+    focus: `Tydzien ${weekNumber}`,
+    days: [
+      {
+        dayNumber: 1,
+        dayName: "Dzien A",
+        warmup: "Krotka rozgrzewka.",
+        exercises: [
+          {
+            name: "Przysiad",
+            sets: "3",
+            reps: "8",
+            intensity: "70%",
+            rest: "90s",
+            tempo: "3-1-2-0",
+            notes: "Kontrola ruchu.",
+          },
+        ],
+        cooldown: "Krotki cooldown.",
+        duration: "60 min",
+      },
+    ],
+  })),
+  progressionNotes: "Stopniowa progresja.",
+  nutritionTips: "Bilans kaloryczny.",
+  recoveryProtocol: "Sen i nawodnienie.",
+};
+
 function makeRequest({
   method = "POST",
   workerSecret,
@@ -74,8 +122,9 @@ function makeRequest({
 
 beforeEach(() => {
   mockRpc.mockReset();
-  mockGeneratePlan.mockReset();
-  mockRepairPlanJson.mockReset();
+  mockGeneratePlanStructured.mockReset();
+  mockGeneratePlanWithMetadata.mockReset();
+  mockRepairPlanJsonWithMetadata.mockReset();
   mockParsePlanJson.mockReset();
   process.env.PLAN_JOBS_WORKER_SECRET = WORKER_SECRET;
   process.env.CRON_SECRET = CRON_SECRET;
@@ -246,7 +295,8 @@ describe("POST /api/internal/plans/jobs/run", () => {
         data: [{ job_id: CLAIMED_JOB.id, status: "queued" }],
         error: null,
       });
-    mockGeneratePlan.mockRejectedValueOnce(retryableError);
+    mockGeneratePlanStructured.mockRejectedValueOnce(new Error("structured unavailable"));
+    mockGeneratePlanWithMetadata.mockRejectedValueOnce(retryableError);
 
     const response = await POST(
       makeRequest({ workerSecret: WORKER_SECRET }) as Parameters<typeof POST>[0],
@@ -271,11 +321,32 @@ describe("POST /api/internal/plans/jobs/run", () => {
         data: [{ job_id: CLAIMED_JOB.id, status: "failed" }],
         error: null,
       });
-    mockGeneratePlan.mockResolvedValueOnce("{ invalid }");
+    mockGeneratePlanStructured.mockRejectedValueOnce(new Error("structured unavailable"));
+    mockGeneratePlanWithMetadata.mockResolvedValueOnce({
+      text: "{ invalid }",
+      metadata: {
+        mode: "text",
+        stopReason: "max_tokens",
+        inputTokens: 1200,
+        outputTokens: 3000,
+        textLength: 10,
+        toolInputLength: null,
+      },
+    });
     mockParsePlanJson.mockImplementationOnce(() => {
       throw new Error("Failed to parse JSON from Claude response: Unexpected token");
     });
-    mockRepairPlanJson.mockResolvedValueOnce("{ still invalid }");
+    mockRepairPlanJsonWithMetadata.mockResolvedValueOnce({
+      text: "{ still invalid }",
+      metadata: {
+        mode: "repair",
+        stopReason: "end_turn",
+        inputTokens: 700,
+        outputTokens: 1800,
+        textLength: 16,
+        toolInputLength: null,
+      },
+    });
     mockParsePlanJson.mockImplementationOnce(() => {
       throw new Error("Repair pass still invalid JSON");
     });
@@ -303,7 +374,18 @@ describe("POST /api/internal/plans/jobs/run", () => {
         data: [{ job_id: CLAIMED_JOB.id, status: "failed" }],
         error: null,
       });
-    mockGeneratePlan.mockResolvedValueOnce("{\"ok\":true}");
+    mockGeneratePlanStructured.mockRejectedValueOnce(new Error("structured unavailable"));
+    mockGeneratePlanWithMetadata.mockResolvedValueOnce({
+      text: "{\"ok\":true}",
+      metadata: {
+        mode: "text",
+        stopReason: "end_turn",
+        inputTokens: 1200,
+        outputTokens: 600,
+        textLength: 11,
+        toolInputLength: null,
+      },
+    });
     mockParsePlanJson.mockImplementationOnce(() => {
       throw new Error("Invalid input: expected weeks length 4");
     });
@@ -315,7 +397,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
 
     expect(response.status).toBe(200);
     expect(json.status).toBe("failed");
-    expect(mockRepairPlanJson).not.toHaveBeenCalled();
+    expect(mockRepairPlanJsonWithMetadata).not.toHaveBeenCalled();
     expect(mockRpc).toHaveBeenNthCalledWith(2, "fail_plan_generation_job", {
       p_job_id: CLAIMED_JOB.id,
       p_claim_token: CLAIMED_JOB.claim_token,
@@ -349,11 +431,32 @@ describe("POST /api/internal/plans/jobs/run", () => {
         ],
         error: null,
       });
-    mockGeneratePlan.mockResolvedValueOnce("{ malformed");
+    mockGeneratePlanStructured.mockRejectedValueOnce(new Error("structured unavailable"));
+    mockGeneratePlanWithMetadata.mockResolvedValueOnce({
+      text: "{ malformed",
+      metadata: {
+        mode: "text",
+        stopReason: "max_tokens",
+        inputTokens: 1200,
+        outputTokens: 3000,
+        textLength: 11,
+        toolInputLength: null,
+      },
+    });
     mockParsePlanJson.mockImplementationOnce(() => {
       throw new Error("Failed to parse JSON from Claude response: Unterminated string");
     });
-    mockRepairPlanJson.mockResolvedValueOnce("{\"fixed\":true}");
+    mockRepairPlanJsonWithMetadata.mockResolvedValueOnce({
+      text: "{\"fixed\":true}",
+      metadata: {
+        mode: "repair",
+        stopReason: "end_turn",
+        inputTokens: 600,
+        outputTokens: 1100,
+        textLength: 14,
+        toolInputLength: null,
+      },
+    });
     mockParsePlanJson.mockReturnValueOnce(repairedPlan);
 
     const response = await POST(
@@ -364,7 +467,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
     expect(response.status).toBe(200);
     expect(json.status).toBe("succeeded");
     expect(json.planId).toBe("plan-uuid-repaired");
-    expect(mockRepairPlanJson).toHaveBeenCalledTimes(1);
+    expect(mockRepairPlanJsonWithMetadata).toHaveBeenCalledTimes(1);
     expect(mockParsePlanJson).toHaveBeenCalledTimes(2);
     expect(mockRpc).toHaveBeenNthCalledWith(2, "complete_plan_generation_job", {
       p_job_id: CLAIMED_JOB.id,
@@ -388,16 +491,16 @@ describe("POST /api/internal/plans/jobs/run", () => {
         ],
         error: null,
       });
-    mockGeneratePlan.mockResolvedValueOnce("{\"ok\":true}");
-    mockParsePlanJson.mockReturnValueOnce({
-      planName: "Plan testowy",
-      phase: "Bazowy",
-      summary: "Krotkie podsumowanie",
-      weeklyOverview: "4 dni",
-      weeks: [],
-      progressionNotes: "Postep",
-      nutritionTips: "Bialko",
-      recoveryProtocol: "Sen",
+    mockGeneratePlanStructured.mockResolvedValueOnce({
+      plan: VALID_STRUCTURED_PLAN,
+      metadata: {
+        mode: "structured_tool",
+        stopReason: "tool_use",
+        inputTokens: 1400,
+        outputTokens: 1300,
+        textLength: null,
+        toolInputLength: 1200,
+      },
     });
 
     const response = await POST(
@@ -413,16 +516,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
       p_claim_token: CLAIMED_JOB.claim_token,
       p_plan_name: "Plan testowy",
       p_phase: "Bazowy",
-      p_plan_json: {
-        planName: "Plan testowy",
-        phase: "Bazowy",
-        summary: "Krotkie podsumowanie",
-        weeklyOverview: "4 dni",
-        weeks: [],
-        progressionNotes: "Postep",
-        nutritionTips: "Bialko",
-        recoveryProtocol: "Sen",
-      },
+      p_plan_json: VALID_STRUCTURED_PLAN,
     });
   });
 });
