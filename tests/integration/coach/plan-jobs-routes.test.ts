@@ -336,4 +336,38 @@ describe("GET /api/coach/plans/jobs/[jobId]", () => {
     expect(json.data).not.toHaveProperty("prompt_inputs");
     expect(json.data).not.toHaveProperty("claim_token");
   });
+
+  it("sanitizes technical parse details in failed job status payload", async () => {
+    const jobsStatusBuilder = makeJobsStatusBuilder({
+      data: {
+        ...JOB_ROW,
+        status: "failed",
+        error_code: "plan_parse_or_validation_failed",
+        error_message:
+          "Failed to parse JSON from Claude response: Unterminated string at position 15024",
+      },
+      error: null,
+    });
+    mockFrom.mockReturnValue(jobsStatusBuilder);
+
+    const response = await GET(
+      makeStatusRequest("550e8400-e29b-41d4-a716-446655440000") as Parameters<
+        typeof GET
+      >[0],
+      routeContext("550e8400-e29b-41d4-a716-446655440000"),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.data.error_code).toBe("plan_parse_or_validation_failed");
+    expect(json.data.errorCode).toBe("plan_parse_or_validation_failed");
+    expect(json.data.error_message).toBe(
+      "Nie udało się przetworzyć odpowiedzi AI. Spróbuj ponownie.",
+    );
+    expect(json.data.errorMessage).toBe(
+      "Nie udało się przetworzyć odpowiedzi AI. Spróbuj ponownie.",
+    );
+    expect(String(json.data.error_message)).not.toContain("position");
+    expect(String(json.data.error_message)).not.toContain("Failed to parse JSON");
+  });
 });

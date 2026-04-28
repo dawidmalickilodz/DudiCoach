@@ -3,11 +3,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { afterEach, beforeEach, vi } from "vitest";
 
-const { mockRpc, mockGeneratePlan, mockParsePlanJson } = vi.hoisted(() => {
+const { mockRpc, mockGeneratePlan, mockRepairPlanJson, mockParsePlanJson } = vi.hoisted(() => {
   const mockRpc = vi.fn();
   const mockGeneratePlan = vi.fn();
+  const mockRepairPlanJson = vi.fn();
   const mockParsePlanJson = vi.fn();
-  return { mockRpc, mockGeneratePlan, mockParsePlanJson };
+  return { mockRpc, mockGeneratePlan, mockRepairPlanJson, mockParsePlanJson };
 });
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -18,6 +19,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 
 vi.mock("@/lib/ai/client", () => ({
   generatePlan: (...args: unknown[]) => mockGeneratePlan(...args),
+  repairPlanJson: (...args: unknown[]) => mockRepairPlanJson(...args),
 }));
 
 vi.mock("@/lib/ai/parse-plan-json", () => ({
@@ -30,6 +32,8 @@ const ORIGINAL_WORKER_SECRET = process.env.PLAN_JOBS_WORKER_SECRET;
 const ORIGINAL_CRON_SECRET = process.env.CRON_SECRET;
 const WORKER_SECRET = "test-worker-secret";
 const CRON_SECRET = "test-cron-secret";
+const PARSE_SAFE_ERROR_MESSAGE =
+  "Nie udało się przetworzyć odpowiedzi AI. Spróbuj ponownie.";
 
 const CLAIMED_JOB = {
   id: "job-uuid-001",
@@ -69,7 +73,10 @@ function makeRequest({
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  mockRpc.mockReset();
+  mockGeneratePlan.mockReset();
+  mockRepairPlanJson.mockReset();
+  mockParsePlanJson.mockReset();
   process.env.PLAN_JOBS_WORKER_SECRET = WORKER_SECRET;
   process.env.CRON_SECRET = CRON_SECRET;
 });
@@ -266,7 +273,11 @@ describe("POST /api/internal/plans/jobs/run", () => {
       });
     mockGeneratePlan.mockResolvedValueOnce("{ invalid }");
     mockParsePlanJson.mockImplementationOnce(() => {
-      throw new Error("Failed to parse JSON from Claude response");
+      throw new Error("Failed to parse JSON from Claude response: Unexpected token");
+    });
+    mockRepairPlanJson.mockResolvedValueOnce("{ still invalid }");
+    mockParsePlanJson.mockImplementationOnce(() => {
+      throw new Error("Repair pass still invalid JSON");
     });
 
     const response = await POST(
@@ -280,8 +291,87 @@ describe("POST /api/internal/plans/jobs/run", () => {
       p_job_id: CLAIMED_JOB.id,
       p_claim_token: CLAIMED_JOB.claim_token,
       p_error_code: "plan_parse_or_validation_failed",
-      p_error_message: "Failed to parse JSON from Claude response",
+      p_error_message: PARSE_SAFE_ERROR_MESSAGE,
       p_retryable: false,
+    });
+  });
+
+  it("does not attempt repair on schema validation error", async () => {
+    mockRpc
+      .mockResolvedValueOnce({ data: [CLAIMED_JOB], error: null })
+      .mockResolvedValueOnce({
+        data: [{ job_id: CLAIMED_JOB.id, status: "failed" }],
+        error: null,
+      });
+    mockGeneratePlan.mockResolvedValueOnce("{\"ok\":true}");
+    mockParsePlanJson.mockImplementationOnce(() => {
+      throw new Error("Invalid input: expected weeks length 4");
+    });
+
+    const response = await POST(
+      makeRequest({ workerSecret: WORKER_SECRET }) as Parameters<typeof POST>[0],
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.status).toBe("failed");
+    expect(mockRepairPlanJson).not.toHaveBeenCalled();
+    expect(mockRpc).toHaveBeenNthCalledWith(2, "fail_plan_generation_job", {
+      p_job_id: CLAIMED_JOB.id,
+      p_claim_token: CLAIMED_JOB.claim_token,
+      p_error_code: "plan_parse_or_validation_failed",
+      p_error_message: PARSE_SAFE_ERROR_MESSAGE,
+      p_retryable: false,
+    });
+  });
+
+  it("attempts one repair pass and succeeds when repaired JSON is valid", async () => {
+    const repairedPlan = {
+      planName: "Plan po naprawie",
+      phase: "Bazowy",
+      summary: "Krotkie podsumowanie",
+      weeklyOverview: "4 dni",
+      weeks: [],
+      progressionNotes: "Postep",
+      nutritionTips: "Bialko",
+      recoveryProtocol: "Sen",
+    };
+
+    mockRpc
+      .mockResolvedValueOnce({ data: [CLAIMED_JOB], error: null })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            job_id: CLAIMED_JOB.id,
+            plan_id: "plan-uuid-repaired",
+            status: "succeeded",
+          },
+        ],
+        error: null,
+      });
+    mockGeneratePlan.mockResolvedValueOnce("{ malformed");
+    mockParsePlanJson.mockImplementationOnce(() => {
+      throw new Error("Failed to parse JSON from Claude response: Unterminated string");
+    });
+    mockRepairPlanJson.mockResolvedValueOnce("{\"fixed\":true}");
+    mockParsePlanJson.mockReturnValueOnce(repairedPlan);
+
+    const response = await POST(
+      makeRequest({ workerSecret: WORKER_SECRET }) as Parameters<typeof POST>[0],
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.status).toBe("succeeded");
+    expect(json.planId).toBe("plan-uuid-repaired");
+    expect(mockRepairPlanJson).toHaveBeenCalledTimes(1);
+    expect(mockParsePlanJson).toHaveBeenCalledTimes(2);
+    expect(mockRpc).toHaveBeenNthCalledWith(2, "complete_plan_generation_job", {
+      p_job_id: CLAIMED_JOB.id,
+      p_claim_token: CLAIMED_JOB.claim_token,
+      p_plan_name: "Plan po naprawie",
+      p_phase: "Bazowy",
+      p_plan_json: repairedPlan,
     });
   });
 

@@ -62,6 +62,22 @@ export interface GeneratePlanParams {
   userPrompt: string;
 }
 
+interface ExtractedTextBlock {
+  type: "text";
+  text: string;
+}
+
+function extractTextFromResponse(response: Anthropic.Messages.Message): string {
+  const textBlock = response.content.find((b) => b.type === "text") as
+    | ExtractedTextBlock
+    | undefined;
+  if (!textBlock || textBlock.type !== "text") {
+    throw new Error("No text content in Claude response");
+  }
+
+  return textBlock.text;
+}
+
 /**
  * Call Claude to generate a training plan.
  *
@@ -91,10 +107,44 @@ export async function generatePlan(params: GeneratePlanParams): Promise<string> 
     messages: [{ role: "user", content: params.userPrompt }],
   });
 
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("No text content in Claude response");
-  }
+  return extractTextFromResponse(response);
+}
 
-  return textBlock.text;
+/**
+ * Attempt a single JSON repair pass for malformed plan output.
+ *
+ * Used only after parse failure in async worker flow. Keeps schema validation
+ * strict: callers must still parse and validate the repaired output.
+ */
+export async function repairPlanJson(rawPlanText: string): Promise<string> {
+  const response = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: PLAN_MAX_TOKENS,
+    temperature: 0,
+    system: [
+      {
+        type: "text",
+        text: "You repair malformed training-plan JSON. Return ONLY valid minified JSON object, no markdown, no backticks, no prose.",
+      },
+    ],
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: [
+              "Fix this malformed JSON so it becomes valid JSON matching the same training plan schema.",
+              "Do not add commentary. Return JSON object only.",
+              "MALFORMED_JSON_START",
+              rawPlanText,
+              "MALFORMED_JSON_END",
+            ].join("\n"),
+          },
+        ],
+      },
+    ],
+  });
+
+  return extractTextFromResponse(response);
 }

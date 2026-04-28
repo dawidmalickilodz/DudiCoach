@@ -2,13 +2,17 @@
 
 import { afterEach, beforeEach, vi } from "vitest";
 
+const { mockCreate } = vi.hoisted(() => ({
+  mockCreate: vi.fn(),
+}));
+
 vi.mock("@anthropic-ai/sdk", () => {
   class MockAnthropic {
     messages = {
-      create: vi.fn(),
+      create: mockCreate,
     };
 
-    constructor(_options: unknown) {}
+    constructor() {}
   }
 
   return {
@@ -26,6 +30,7 @@ async function importClientModule() {
 
 beforeEach(() => {
   vi.resetModules();
+  mockCreate.mockReset();
   process.env.ANTHROPIC_API_KEY = "test-anthropic-key";
   delete process.env.ANTHROPIC_TIMEOUT_MS;
   delete process.env.ANTHROPIC_PLAN_MAX_TOKENS;
@@ -79,5 +84,26 @@ describe("lib/ai/client config", () => {
 
     expect(mod.ANTHROPIC_TIMEOUT_MS).toBe(55_000);
     expect(mod.PLAN_MAX_TOKENS).toBe(3_000);
+  });
+});
+
+describe("lib/ai/client repairPlanJson", () => {
+  it("uses deterministic repair call and returns text content", async () => {
+    mockCreate.mockResolvedValueOnce({
+      content: [{ type: "text", text: "{\"planName\":\"Naprawiony\"}" }],
+    });
+
+    const mod = await importClientModule();
+    const repaired = await mod.repairPlanJson("{ broken");
+
+    expect(repaired).toBe("{\"planName\":\"Naprawiony\"}");
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: mod.MODEL,
+        max_tokens: mod.PLAN_MAX_TOKENS,
+        temperature: 0,
+      }),
+    );
   });
 });
