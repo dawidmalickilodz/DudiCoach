@@ -7,9 +7,18 @@ import {
   type PlanJobPromptInputs,
   planJobPromptInputsSchema,
 } from "@/lib/api/plan-jobs";
-import { generatePlan, repairPlanJson } from "@/lib/ai/client";
+import {
+  generatePlanStructured,
+  generatePlanWithMetadata,
+  repairPlanJsonWithMetadata,
+  type PlanGenerationMetadata,
+} from "@/lib/ai/client";
 import { parsePlanJson } from "@/lib/ai/parse-plan-json";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  trainingPlanJsonSchema,
+  type TrainingPlanJson,
+} from "@/lib/validation/training-plan";
 
 const WORKER_SECRET_HEADER = "x-plan-jobs-worker-secret";
 const AUTHORIZATION_HEADER = "authorization";
@@ -54,6 +63,37 @@ function extractManualWorkerSecret(request: NextRequest) {
 function sanitizeMessage(input: unknown) {
   const message = input instanceof Error ? input.message : String(input);
   return message.slice(0, 320);
+}
+
+function classifyErrorClass(input: unknown) {
+  if (input instanceof Anthropic.APIConnectionTimeoutError) {
+    return "anthropic_timeout";
+  }
+  if (input instanceof Anthropic.APIError) {
+    return `anthropic_api_${input.status ?? "unknown"}`;
+  }
+  if (input instanceof Error) {
+    return input.name || "error";
+  }
+  return typeof input;
+}
+
+function logGenerationMetadata(
+  routeLabel: string,
+  job: ClaimedJob,
+  metadata: PlanGenerationMetadata | null,
+  extra: Record<string, unknown> = {},
+) {
+  console.info(`[${routeLabel}] Plan generation metadata`, {
+    jobId: job.id,
+    responseMode: metadata?.mode ?? null,
+    stopReason: metadata?.stopReason ?? null,
+    inputTokens: metadata?.inputTokens ?? null,
+    outputTokens: metadata?.outputTokens ?? null,
+    responseTextLength: metadata?.textLength ?? null,
+    toolInputLength: metadata?.toolInputLength ?? null,
+    ...extra,
+  });
 }
 
 function isRetryableGenerationError(error: unknown) {
@@ -146,74 +186,158 @@ async function runWorker(routeLabel: string) {
     );
   }
 
-  let rawPlan: string;
+  let parsedPlan: TrainingPlanJson | null = null;
+  let structuredAttempted = false;
+  let repairAttempted = false;
+  let generationMetadata: PlanGenerationMetadata | null = null;
+
   try {
-    rawPlan = await generatePlan(promptInputs);
-  } catch (error) {
-    const retryable = isRetryableGenerationError(error);
-    await failJob(
-      claimedJob,
-      classifyErrorCode(error, "generation"),
-      sanitizeMessage(error),
-      retryable,
-    );
-    return NextResponse.json(
-      {
-        processed: true,
-        status: retryable ? "queued" : "failed",
-        jobId: claimedJob.id,
-      },
-      { status: 200 },
-    );
+    structuredAttempted = true;
+    const structured = await generatePlanStructured(promptInputs);
+    generationMetadata = structured.metadata;
+    parsedPlan = trainingPlanJsonSchema.parse(structured.plan);
+    logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+      structuredAttempted,
+      repairAttempted,
+      parseFailureClass: null,
+      repairParseResult: "not_needed",
+      structuredPathResult: "success",
+    });
+  } catch (structuredError) {
+    logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+      structuredAttempted,
+      repairAttempted,
+      parseFailureClass: classifyErrorClass(structuredError),
+      repairParseResult: "not_attempted",
+      structuredPathResult: "failed",
+    });
   }
 
-  let parsedPlan;
-  try {
-    parsedPlan = parsePlanJson(rawPlan);
-  } catch (error) {
-    if (!isJsonParseFailure(error)) {
-      const parseErrorCode = classifyErrorCode(error, "parse");
-      console.error(`[${routeLabel}] Plan schema validation failed`, {
-        jobId: claimedJob.id,
-        message: sanitizeMessage(error),
+  if (!parsedPlan) {
+    let rawPlan: string;
+    try {
+      const generated = await generatePlanWithMetadata(promptInputs);
+      rawPlan = generated.text;
+      generationMetadata = generated.metadata;
+      logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+        structuredAttempted,
+        repairAttempted,
       });
+    } catch (error) {
+      const retryable = isRetryableGenerationError(error);
       await failJob(
         claimedJob,
-        parseErrorCode,
-        mapPlanJobErrorMessage(parseErrorCode) ?? "Nie udało się wygenerować planu. Spróbuj ponownie.",
-        false,
+        classifyErrorCode(error, "generation"),
+        sanitizeMessage(error),
+        retryable,
       );
       return NextResponse.json(
-        { processed: true, status: "failed", jobId: claimedJob.id },
+        {
+          processed: true,
+          status: retryable ? "queued" : "failed",
+          jobId: claimedJob.id,
+        },
         { status: 200 },
       );
     }
-
-    console.warn(`[${routeLabel}] Initial plan parse failed; attempting one JSON repair pass`, {
-      jobId: claimedJob.id,
-      message: sanitizeMessage(error),
-    });
 
     try {
-      const repairedRawPlan = await repairPlanJson(rawPlan);
-      parsedPlan = parsePlanJson(repairedRawPlan);
-    } catch (repairError) {
-      const parseErrorCode = classifyErrorCode(repairError, "parse");
-      console.error(`[${routeLabel}] Plan repair failed`, {
-        jobId: claimedJob.id,
-        message: sanitizeMessage(repairError),
+      parsedPlan = parsePlanJson(rawPlan);
+      logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+        structuredAttempted,
+        repairAttempted,
+        parseFailureClass: null,
+        repairParseResult: "not_needed",
       });
-      await failJob(
-        claimedJob,
-        parseErrorCode,
-        mapPlanJobErrorMessage(parseErrorCode) ?? "Nie udało się wygenerować planu. Spróbuj ponownie.",
-        false,
+    } catch (error) {
+      const parseFailureClass = classifyErrorClass(error);
+      if (!isJsonParseFailure(error)) {
+        const parseErrorCode = classifyErrorCode(error, "parse");
+        console.error(`[${routeLabel}] Plan schema validation failed`, {
+          jobId: claimedJob.id,
+          parseFailureClass,
+          message: sanitizeMessage(error),
+        });
+        logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+          structuredAttempted,
+          repairAttempted,
+          parseFailureClass,
+          repairParseResult: "not_attempted",
+        });
+        await failJob(
+          claimedJob,
+          parseErrorCode,
+          mapPlanJobErrorMessage(parseErrorCode) ??
+            "Nie udało się wygenerować planu. Spróbuj ponownie.",
+          false,
+        );
+        return NextResponse.json(
+          { processed: true, status: "failed", jobId: claimedJob.id },
+          { status: 200 },
+        );
+      }
+
+      repairAttempted = true;
+      console.warn(
+        `[${routeLabel}] Initial plan parse failed; attempting one JSON repair pass`,
+        {
+          jobId: claimedJob.id,
+          parseFailureClass,
+          message: sanitizeMessage(error),
+        },
       );
-      return NextResponse.json(
-        { processed: true, status: "failed", jobId: claimedJob.id },
-        { status: 200 },
-      );
+
+      try {
+        const repaired = await repairPlanJsonWithMetadata(rawPlan);
+        generationMetadata = repaired.metadata;
+        parsedPlan = parsePlanJson(repaired.text);
+        logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+          structuredAttempted,
+          repairAttempted,
+          parseFailureClass,
+          repairParseResult: "success",
+        });
+      } catch (repairError) {
+        const parseErrorCode = classifyErrorCode(repairError, "parse");
+        const repairParseFailureClass = classifyErrorClass(repairError);
+        console.error(`[${routeLabel}] Plan repair failed`, {
+          jobId: claimedJob.id,
+          parseFailureClass,
+          repairParseFailureClass,
+          message: sanitizeMessage(repairError),
+        });
+        logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+          structuredAttempted,
+          repairAttempted,
+          parseFailureClass,
+          repairParseResult: "failed",
+        });
+        await failJob(
+          claimedJob,
+          parseErrorCode,
+          mapPlanJobErrorMessage(parseErrorCode) ??
+            "Nie udało się wygenerować planu. Spróbuj ponownie.",
+          false,
+        );
+        return NextResponse.json(
+          { processed: true, status: "failed", jobId: claimedJob.id },
+          { status: 200 },
+        );
+      }
     }
+  }
+
+  if (!parsedPlan) {
+    await failJob(
+      claimedJob,
+      "generation_unexpected_error",
+      "Nie udało się wygenerować planu. Spróbuj ponownie.",
+      false,
+    );
+    return NextResponse.json(
+      { processed: true, status: "failed", jobId: claimedJob.id },
+      { status: 200 },
+    );
   }
 
   const { data: completedData, error: completeError } = await supabase.rpc(
