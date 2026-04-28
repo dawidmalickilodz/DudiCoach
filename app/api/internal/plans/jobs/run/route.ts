@@ -8,16 +8,21 @@ import {
   planJobPromptInputsSchema,
 } from "@/lib/api/plan-jobs";
 import {
-  generatePlanStructured,
+  generatePlanHeaderStructured,
+  generatePlanWeekStructured,
   generatePlanWithMetadata,
   repairPlanJsonWithMetadata,
   type PlanGenerationMetadata,
 } from "@/lib/ai/client";
-import { parsePlanJson } from "@/lib/ai/parse-plan-json";
+import { parseJsonWithSchema } from "@/lib/ai/parse-plan-json";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  trainingPlanHeaderSchema,
   trainingPlanJsonSchema,
+  weekSchema,
+  type TrainingPlanHeader,
   type TrainingPlanJson,
+  type Week,
 } from "@/lib/validation/training-plan";
 
 const WORKER_SECRET_HEADER = "x-plan-jobs-worker-secret";
@@ -119,7 +124,7 @@ function classifyErrorCode(error: unknown, stage: "prompt" | "generation" | "par
 function isJsonParseFailure(error: unknown) {
   return (
     error instanceof Error &&
-    error.message.startsWith("Failed to parse JSON from Claude response:")
+    error.message.startsWith("Failed to parse JSON from ")
   );
 }
 
@@ -145,6 +150,195 @@ function parsePromptInputs(raw: unknown): PlanJobPromptInputs {
     throw new Error("Invalid prompt_inputs payload");
   }
   return parsed.data;
+}
+
+const WEEK_NUMBERS = [1, 2, 3, 4] as const;
+
+function buildHeaderUserPrompt(baseUserPrompt: string) {
+  return `${baseUserPrompt}
+
+Nadpisanie zadania:
+- Wygeneruj TYLKO naglowek planu jako JSON.
+- Nie dodawaj pola "weeks".
+- Zachowaj zwiezly styl.
+- Zwracaj WYŁĄCZNIE JSON obiektu naglowka.`;
+}
+
+function summarizePreviousWeeks(weeks: Week[]) {
+  if (weeks.length === 0) return "Brak wczesniejszych tygodni.";
+  return weeks
+    .map((week) => `T${week.weekNumber}: ${week.focus}`)
+    .join(" | ");
+}
+
+function buildWeekUserPrompt(
+  baseUserPrompt: string,
+  {
+    header,
+    weekNumber,
+    previousWeeks,
+  }: {
+    header: TrainingPlanHeader;
+    weekNumber: number;
+    previousWeeks: Week[];
+  },
+) {
+  const deloadHint =
+    weekNumber === 4
+      ? "To jest tydzien deload: objetosc i obciazenie musza byc nizsze niz w tygodniach 1-3."
+      : "To nie jest tydzien deload.";
+
+  return `${baseUserPrompt}
+
+Nadpisanie zadania:
+- Wygeneruj TYLKO obiekt tygodnia dla weekNumber=${weekNumber}.
+- Zachowaj liczbe dni treningowych zgodna z danymi zawodnika.
+- Zachowaj 3-4 cwiczenia na sesje.
+- focus/warmup/cooldown/notes = 1 krotkie zdanie.
+- ${deloadHint}
+
+Kontekst naglowka planu:
+- planName: ${header.planName}
+- phase: ${header.phase}
+- weeklyOverview: ${header.weeklyOverview}
+
+Fokus poprzednich tygodni:
+${summarizePreviousWeeks(previousWeeks)}
+
+Zwracaj WYŁĄCZNIE JSON pojedynczego tygodnia.`;
+}
+
+type StructuredGenerationResult = {
+  output: unknown;
+  metadata: PlanGenerationMetadata;
+};
+
+function markGenerationStage(error: unknown) {
+  if (error instanceof Error) {
+    Object.assign(error, { _planStage: "generation" });
+    return error;
+  }
+  const wrapped = new Error(String(error));
+  Object.assign(wrapped, { _planStage: "generation" });
+  return wrapped;
+}
+
+async function generateSectionWithFallback<T>({
+  routeLabel,
+  claimedJob,
+  sectionLabel,
+  promptInputs,
+  generateStructured,
+  parseStructuredOutput,
+  parseTextOutput,
+}: {
+  routeLabel: string;
+  claimedJob: ClaimedJob;
+  sectionLabel: string;
+  promptInputs: PlanJobPromptInputs;
+  generateStructured: (params: PlanJobPromptInputs) => Promise<StructuredGenerationResult>;
+  parseStructuredOutput: (input: unknown) => T;
+  parseTextOutput: (raw: string) => T;
+}): Promise<T> {
+  let structuredAttempted = false;
+  let repairAttempted = false;
+  let generationMetadata: PlanGenerationMetadata | null = null;
+
+  try {
+    structuredAttempted = true;
+    const structured = await generateStructured(promptInputs);
+    generationMetadata = structured.metadata;
+    const parsed = parseStructuredOutput(structured.output);
+    logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+      section: sectionLabel,
+      structuredAttempted,
+      repairAttempted,
+      parseFailureClass: null,
+      repairParseResult: "not_needed",
+      structuredPathResult: "success",
+    });
+    return parsed;
+  } catch (structuredError) {
+    logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+      section: sectionLabel,
+      structuredAttempted,
+      repairAttempted,
+      parseFailureClass: classifyErrorClass(structuredError),
+      repairParseResult: "not_attempted",
+      structuredPathResult: "failed",
+    });
+  }
+
+  let rawText: string;
+  try {
+    const generated = await generatePlanWithMetadata(promptInputs);
+    rawText = generated.text;
+    generationMetadata = generated.metadata;
+  } catch (error) {
+    throw markGenerationStage(error);
+  }
+  logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+    section: sectionLabel,
+    structuredAttempted,
+    repairAttempted,
+  });
+
+  try {
+    const parsed = parseTextOutput(rawText);
+    logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+      section: sectionLabel,
+      structuredAttempted,
+      repairAttempted,
+      parseFailureClass: null,
+      repairParseResult: "not_needed",
+    });
+    return parsed;
+  } catch (error) {
+    const parseFailureClass = classifyErrorClass(error);
+    if (!isJsonParseFailure(error)) {
+      logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+        section: sectionLabel,
+        structuredAttempted,
+        repairAttempted,
+        parseFailureClass,
+        repairParseResult: "not_attempted",
+      });
+      throw error;
+    }
+
+    repairAttempted = true;
+    console.warn(
+      `[${routeLabel}] Initial ${sectionLabel} parse failed; attempting one JSON repair pass`,
+      {
+        jobId: claimedJob.id,
+        parseFailureClass,
+        message: sanitizeMessage(error),
+      },
+    );
+
+    try {
+      const repaired = await repairPlanJsonWithMetadata(rawText);
+      generationMetadata = repaired.metadata;
+      const parsed = parseTextOutput(repaired.text);
+      logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+        section: sectionLabel,
+        structuredAttempted,
+        repairAttempted,
+        parseFailureClass,
+        repairParseResult: "success",
+      });
+      return parsed;
+    } catch (repairError) {
+      logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
+        section: sectionLabel,
+        structuredAttempted,
+        repairAttempted,
+        parseFailureClass,
+        repairParseResult: "failed",
+      });
+      throw repairError;
+    }
+  }
 }
 
 async function runWorker(routeLabel: string) {
@@ -187,144 +381,94 @@ async function runWorker(routeLabel: string) {
   }
 
   let parsedPlan: TrainingPlanJson | null = null;
-  let structuredAttempted = false;
-  let repairAttempted = false;
-  let generationMetadata: PlanGenerationMetadata | null = null;
 
   try {
-    structuredAttempted = true;
-    const structured = await generatePlanStructured(promptInputs);
-    generationMetadata = structured.metadata;
-    parsedPlan = trainingPlanJsonSchema.parse(structured.plan);
-    logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
-      structuredAttempted,
-      repairAttempted,
-      parseFailureClass: null,
-      repairParseResult: "not_needed",
-      structuredPathResult: "success",
+    const headerPromptInputs: PlanJobPromptInputs = {
+      systemPrompt: promptInputs.systemPrompt,
+      userPrompt: buildHeaderUserPrompt(promptInputs.userPrompt),
+    };
+    const header = await generateSectionWithFallback<TrainingPlanHeader>({
+      routeLabel,
+      claimedJob,
+      sectionLabel: "header",
+      promptInputs: headerPromptInputs,
+      generateStructured: async (params) => {
+        const result = await generatePlanHeaderStructured(params);
+        return { output: result.header, metadata: result.metadata };
+      },
+      parseStructuredOutput: (input) => trainingPlanHeaderSchema.parse(input),
+      parseTextOutput: (raw) =>
+        parseJsonWithSchema(raw, trainingPlanHeaderSchema, "plan header response"),
     });
-  } catch (structuredError) {
-    logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
-      structuredAttempted,
-      repairAttempted,
-      parseFailureClass: classifyErrorClass(structuredError),
-      repairParseResult: "not_attempted",
-      structuredPathResult: "failed",
-    });
-  }
 
-  if (!parsedPlan) {
-    let rawPlan: string;
-    try {
-      const generated = await generatePlanWithMetadata(promptInputs);
-      rawPlan = generated.text;
-      generationMetadata = generated.metadata;
-      logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
-        structuredAttempted,
-        repairAttempted,
-      });
-    } catch (error) {
-      const retryable = isRetryableGenerationError(error);
-      await failJob(
+    const weeks: Week[] = [];
+    for (const weekNumber of WEEK_NUMBERS) {
+      const weekPromptInputs: PlanJobPromptInputs = {
+        systemPrompt: promptInputs.systemPrompt,
+        userPrompt: buildWeekUserPrompt(promptInputs.userPrompt, {
+          header,
+          weekNumber,
+          previousWeeks: weeks,
+        }),
+      };
+
+      const week = await generateSectionWithFallback<Week>({
+        routeLabel,
         claimedJob,
-        classifyErrorCode(error, "generation"),
-        sanitizeMessage(error),
-        retryable,
-      );
-      return NextResponse.json(
-        {
-          processed: true,
-          status: retryable ? "queued" : "failed",
-          jobId: claimedJob.id,
+        sectionLabel: `week_${weekNumber}`,
+        promptInputs: weekPromptInputs,
+        generateStructured: async (params) => {
+          const result = await generatePlanWeekStructured(params);
+          return { output: result.week, metadata: result.metadata };
         },
-        { status: 200 },
-      );
-    }
-
-    try {
-      parsedPlan = parsePlanJson(rawPlan);
-      logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
-        structuredAttempted,
-        repairAttempted,
-        parseFailureClass: null,
-        repairParseResult: "not_needed",
+        parseStructuredOutput: (input) => weekSchema.parse(input),
+        parseTextOutput: (raw) =>
+          parseJsonWithSchema(raw, weekSchema, `week ${weekNumber} response`),
       });
-    } catch (error) {
-      const parseFailureClass = classifyErrorClass(error);
-      if (!isJsonParseFailure(error)) {
-        const parseErrorCode = classifyErrorCode(error, "parse");
-        console.error(`[${routeLabel}] Plan schema validation failed`, {
-          jobId: claimedJob.id,
-          parseFailureClass,
-          message: sanitizeMessage(error),
-        });
-        logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
-          structuredAttempted,
-          repairAttempted,
-          parseFailureClass,
-          repairParseResult: "not_attempted",
-        });
-        await failJob(
-          claimedJob,
-          parseErrorCode,
-          mapPlanJobErrorMessage(parseErrorCode) ??
-            "Nie udało się wygenerować planu. Spróbuj ponownie.",
-          false,
-        );
-        return NextResponse.json(
-          { processed: true, status: "failed", jobId: claimedJob.id },
-          { status: 200 },
-        );
-      }
 
-      repairAttempted = true;
-      console.warn(
-        `[${routeLabel}] Initial plan parse failed; attempting one JSON repair pass`,
-        {
-          jobId: claimedJob.id,
-          parseFailureClass,
-          message: sanitizeMessage(error),
-        },
-      );
-
-      try {
-        const repaired = await repairPlanJsonWithMetadata(rawPlan);
-        generationMetadata = repaired.metadata;
-        parsedPlan = parsePlanJson(repaired.text);
-        logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
-          structuredAttempted,
-          repairAttempted,
-          parseFailureClass,
-          repairParseResult: "success",
-        });
-      } catch (repairError) {
-        const parseErrorCode = classifyErrorCode(repairError, "parse");
-        const repairParseFailureClass = classifyErrorClass(repairError);
-        console.error(`[${routeLabel}] Plan repair failed`, {
-          jobId: claimedJob.id,
-          parseFailureClass,
-          repairParseFailureClass,
-          message: sanitizeMessage(repairError),
-        });
-        logGenerationMetadata(routeLabel, claimedJob, generationMetadata, {
-          structuredAttempted,
-          repairAttempted,
-          parseFailureClass,
-          repairParseResult: "failed",
-        });
-        await failJob(
-          claimedJob,
-          parseErrorCode,
-          mapPlanJobErrorMessage(parseErrorCode) ??
-            "Nie udało się wygenerować planu. Spróbuj ponownie.",
-          false,
-        );
-        return NextResponse.json(
-          { processed: true, status: "failed", jobId: claimedJob.id },
-          { status: 200 },
-        );
-      }
+      weeks.push(week);
     }
+
+    parsedPlan = trainingPlanJsonSchema.parse({
+      ...header,
+      weeks,
+    });
+  } catch (error) {
+    const stageHint =
+      typeof error === "object" && error !== null
+        ? (error as { _planStage?: string })._planStage
+        : undefined;
+    const isGenerationFailure =
+      stageHint === "generation" ||
+      error instanceof Anthropic.APIConnectionTimeoutError ||
+      error instanceof Anthropic.APIError ||
+      isRetryableGenerationError(error);
+
+    const stage = isGenerationFailure ? "generation" : "parse";
+    const errorCode = classifyErrorCode(error, stage);
+    const retryable = isGenerationFailure && isRetryableGenerationError(error);
+    const errorMessage =
+      stage === "parse"
+        ? mapPlanJobErrorMessage(errorCode) ??
+          "Nie udało się wygenerować planu. Spróbuj ponownie."
+        : sanitizeMessage(error);
+
+    console.error(`[${routeLabel}] Per-week generation failed`, {
+      jobId: claimedJob.id,
+      stage,
+      errorClass: classifyErrorClass(error),
+      message: sanitizeMessage(error),
+    });
+
+    await failJob(claimedJob, errorCode, errorMessage, retryable);
+    return NextResponse.json(
+      {
+        processed: true,
+        status: retryable ? "queued" : "failed",
+        jobId: claimedJob.id,
+      },
+      { status: 200 },
+    );
   }
 
   if (!parsedPlan) {

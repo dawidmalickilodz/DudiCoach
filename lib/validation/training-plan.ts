@@ -40,7 +40,12 @@ export const trainingPlanJsonSchema = z.object({
   recoveryProtocol: z.string().min(1).max(240),
 });
 
+export const trainingPlanHeaderSchema = trainingPlanJsonSchema.omit({
+  weeks: true,
+});
+
 export type TrainingPlanJson = z.infer<typeof trainingPlanJsonSchema>;
+export type TrainingPlanHeader = z.infer<typeof trainingPlanHeaderSchema>;
 export type Exercise = z.infer<typeof exerciseSchema>;
 export type Day = z.infer<typeof daySchema>;
 export type Week = z.infer<typeof weekSchema>;
