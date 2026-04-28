@@ -61,12 +61,16 @@ Zasady planowania:
 - BEZWZGLEDNIE omijaj cwiczenia obciazajace kontuzjowane partie ciala
 - Progresja obciazen miedzy tygodniami
 - Tydzien 4 = deload (zmniejszone obciazenie)
+- Tydzien 4 ma miec mniejsza objetosc niz tygodnie 1-3
 - Tempo: ekscentryczne-izometryczne-koncentryczne-pauza (np. "3-1-2-0")
 - Konkretne kilogramy na podstawie historii progresji (jesli dostepna)
 - Cwiczenia korekcyjne na slabe miesnie z diagnostyki FMS
 - Symetria lewa-prawa przy dysfunkcjach jednostronnych
 - Rozgrzewka i cool-down w kazdym dniu
 - Czas sesji musi sie miesic w podanym limicie minut
+- Utrzymuj odpowiedz zwiezla: bez dlugich list i bez rozbudowanych opisow
+- warmup, cooldown, focus i notes: dokladnie 1 krotkie zdanie
+- summary, weeklyOverview, progressionNotes, nutritionTips, recoveryProtocol: zwiezle, bez elaboracji
 
 Format odpowiedzi JSON (scisle przestrzegaj tego schematu):
 {
@@ -178,7 +182,8 @@ ${progressionsSection}
 ## Dodatkowe notatki trenera
 ${athlete.notes ?? "Brak"}
 
-Wygeneruj plan zgodny z podanym formatem JSON. Plan powinien miec dokladnie ${athlete.training_days_per_week ?? 3} dni treningowych na tydzien i 5-7 cwiczen na sesje.`.trim();
+Wygeneruj plan zgodny z podanym formatem JSON. Plan powinien miec dokladnie ${athlete.training_days_per_week ?? 3} dni treningowych na tydzien i 3-4 cwiczenia na sesje.
+Zachowaj zwiezly styl: warmup/cooldown/focus/notes po 1 krotkim zdaniu, a sekcje summary/weeklyOverview/progressionNotes/nutritionTips/recoveryProtocol krotko i bez dlugich list.`.trim();
 }
 
 // ---------------------------------------------------------------------------

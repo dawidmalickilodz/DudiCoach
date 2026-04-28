@@ -286,6 +286,10 @@ describe("POST /api/athletes/[id]/plans", () => {
     };
     expect(generationArgs.userPrompt).toContain("Naderwanie dwuglowego uda");
     expect(generationArgs.userPrompt).toContain("Stluczenie barku");
+    expect(generationArgs.userPrompt).toContain("3-4 cwiczenia na sesje");
+    expect(generationArgs.userPrompt).toContain(
+      "warmup/cooldown/focus/notes po 1 krotkim zdaniu",
+    );
   });
 
   it("excludes healed-only injuries from activeInjuries prompt context", async () => {
