@@ -2,12 +2,14 @@
 
 import type { Athlete } from "@/lib/api/athletes";
 import AthleteContextInfo from "./AthleteContextInfo";
-import GeneratePlanButton from "./GeneratePlanButton";
+import GeneratePlanButton, {
+  type GeneratePlanButtonState,
+} from "./GeneratePlanButton";
 
 interface PlanGenerateSectionProps {
   athlete: Athlete;
   planCount: number;
-  isGenerating: boolean;
+  generateState: GeneratePlanButtonState;
   onGenerate: () => void;
 }
 
@@ -18,14 +20,14 @@ interface PlanGenerateSectionProps {
 export default function PlanGenerateSection({
   athlete,
   planCount,
-  isGenerating,
+  generateState,
   onGenerate,
 }: PlanGenerateSectionProps) {
   return (
     <div className="bg-card border-border rounded-card border p-5 space-y-4">
       <AthleteContextInfo athlete={athlete} planCount={planCount} />
       <GeneratePlanButton
-        isGenerating={isGenerating}
+        state={generateState}
         onGenerate={onGenerate}
       />
     </div>

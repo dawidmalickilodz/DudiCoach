@@ -261,6 +261,10 @@ export const pl = {
       },
       plans: {
         generateButton: "Generuj plan AI",
+        queued: "Plan w kolejce...",
+        queuedHint: "Zadanie zostalo dodane do kolejki. To moze potrwac chwile.",
+        processing: "Plan jest generowany...",
+        processingHint: "Generowanie trwa. Mozesz pozostac na tej karcie.",
         generating: "Generuję plan...",
         generatingHint: "To może potrwać do 60 sekund",
         noPlan: "Brak planów. Wygeneruj pierwszy plan AI.",
@@ -269,6 +273,12 @@ export const pl = {
         planCount: "{count} planów",
         levelLabel: "Poziom",
         phaseLabel: "Faza",
+        refreshStatus: "Odswiez",
+        pollTimeout:
+          "Generowanie trwa dluzej niz zwykle. Odswiez status i sprobuj ponownie za chwile.",
+        errorAlreadyInProgress: "Generowanie planu jest juz w toku.",
+        errorJobFailed: "Nie udalo sie wygenerowac planu. Sprobuj ponownie.",
+        errorCancelled: "Generowanie zostalo anulowane. Sprobuj ponownie.",
         errorTimeout: "Przekroczono czas. Spróbuj ponownie.",
         errorRateLimit: "Zbyt wiele prób. Poczekaj chwilę.",
         errorGeneric: "Nie udało się wygenerować planu.",
