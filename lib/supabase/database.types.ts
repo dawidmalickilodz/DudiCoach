@@ -124,6 +124,87 @@ export type Database = {
           },
         ]
       }
+      plan_generation_jobs: {
+        Row: {
+          athlete_id: string
+          attempt_count: number
+          claim_expires_at: string | null
+          claim_token: string | null
+          claimed_at: string | null
+          coach_id: string
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          failed_at: string | null
+          id: string
+          max_attempts: number
+          max_tokens: number
+          model: string
+          plan_id: string | null
+          prompt_inputs: Json
+          status: Database["public"]["Enums"]["plan_generation_job_status"]
+          updated_at: string
+        }
+        Insert: {
+          athlete_id: string
+          attempt_count?: number
+          claim_expires_at?: string | null
+          claim_token?: string | null
+          claimed_at?: string | null
+          coach_id: string
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          max_attempts?: number
+          max_tokens: number
+          model: string
+          plan_id?: string | null
+          prompt_inputs: Json
+          status?: Database["public"]["Enums"]["plan_generation_job_status"]
+          updated_at?: string
+        }
+        Update: {
+          athlete_id?: string
+          attempt_count?: number
+          claim_expires_at?: string | null
+          claim_token?: string | null
+          claimed_at?: string | null
+          coach_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          max_attempts?: number
+          max_tokens?: number
+          model?: string
+          plan_id?: string | null
+          prompt_inputs?: Json
+          status?: Database["public"]["Enums"]["plan_generation_job_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_generation_jobs_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_generation_jobs_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "training_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fitness_test_results: {
         Row: {
           athlete_id: string
@@ -223,6 +304,49 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_pending_plan_generation_job: {
+        Args: { p_lock_seconds?: number }
+        Returns: {
+          id: string
+          athlete_id: string
+          coach_id: string
+          claim_token: string
+          prompt_inputs: Json
+          model: string
+          max_tokens: number
+          attempt_count: number
+          max_attempts: number
+        }[]
+      }
+      complete_plan_generation_job: {
+        Args: {
+          p_job_id: string
+          p_claim_token: string
+          p_plan_name: string
+          p_phase: string
+          p_plan_json: Json
+        }
+        Returns: {
+          job_id: string
+          plan_id: string
+          status: Database["public"]["Enums"]["plan_generation_job_status"]
+        }[]
+      }
+      fail_plan_generation_job: {
+        Args: {
+          p_job_id: string
+          p_claim_token: string
+          p_error_code: string
+          p_error_message: string
+          p_retryable?: boolean
+        }
+        Returns: {
+          job_id: string
+          status: Database["public"]["Enums"]["plan_generation_job_status"]
+          attempt_count: number
+          max_attempts: number
+        }[]
+      }
       generate_share_code: { Args: never; Returns: string }
       get_active_injuries_by_share_code: {
         Args: { p_code: string }
@@ -274,7 +398,12 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      plan_generation_job_status:
+        | "queued"
+        | "processing"
+        | "succeeded"
+        | "failed"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -401,6 +530,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      plan_generation_job_status: [
+        "queued",
+        "processing",
+        "succeeded",
+        "failed",
+        "cancelled",
+      ],
+    },
   },
 } as const
