@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createPlanJobRequestSchema,
   isDuplicateActiveJobError,
+  type PlanJobStatusRow,
   PLAN_JOB_STATUS_SELECT,
+  toPublicPlanJobStatus,
 } from "@/lib/api/plan-jobs";
 import {
   buildSystemPrompt,
@@ -163,5 +165,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ data: inserted }, { status: 201 });
+  return NextResponse.json(
+    { data: toPublicPlanJobStatus(inserted as PlanJobStatusRow) },
+    { status: 201 },
+  );
 }

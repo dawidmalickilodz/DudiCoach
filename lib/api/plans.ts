@@ -30,6 +30,8 @@ export interface PlanGenerationJob {
   plan_id: string | null;
   error_code: string | null;
   error_message: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;

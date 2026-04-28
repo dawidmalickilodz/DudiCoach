@@ -152,7 +152,7 @@ export default function PlanTabContent({ athlete }: PlanTabContentProps) {
     if (activeJobStatus === "failed" || activeJobStatus === "cancelled") {
       queueMicrotask(() => {
         setTerminalStatus(activeJobStatus);
-        setTerminalErrorCode(activeJob?.error_code ?? null);
+        setTerminalErrorCode(activeJob?.errorCode ?? activeJob?.error_code ?? null);
         setActiveJobId(null);
         setActiveJobStartedAtMs(null);
         setIsPollTimedOut(false);

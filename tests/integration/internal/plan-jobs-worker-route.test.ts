@@ -32,6 +32,8 @@ const ORIGINAL_WORKER_SECRET = process.env.PLAN_JOBS_WORKER_SECRET;
 const ORIGINAL_CRON_SECRET = process.env.CRON_SECRET;
 const WORKER_SECRET = "test-worker-secret";
 const CRON_SECRET = "test-cron-secret";
+const PARSE_SAFE_ERROR_MESSAGE =
+  "Nie udało się przetworzyć odpowiedzi AI. Spróbuj ponownie.";
 
 const CLAIMED_JOB = {
   id: "job-uuid-001",
@@ -289,7 +291,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
       p_job_id: CLAIMED_JOB.id,
       p_claim_token: CLAIMED_JOB.claim_token,
       p_error_code: "plan_parse_or_validation_failed",
-      p_error_message: "Repair pass still invalid JSON",
+      p_error_message: PARSE_SAFE_ERROR_MESSAGE,
       p_retryable: false,
     });
   });
@@ -318,7 +320,7 @@ describe("POST /api/internal/plans/jobs/run", () => {
       p_job_id: CLAIMED_JOB.id,
       p_claim_token: CLAIMED_JOB.claim_token,
       p_error_code: "plan_parse_or_validation_failed",
-      p_error_message: "Invalid input: expected weeks length 4",
+      p_error_message: PARSE_SAFE_ERROR_MESSAGE,
       p_retryable: false,
     });
   });

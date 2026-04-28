@@ -3,6 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 import {
+  mapPlanJobErrorMessage,
   type PlanJobPromptInputs,
   planJobPromptInputsSchema,
 } from "@/lib/api/plan-jobs";
@@ -171,10 +172,15 @@ async function runWorker(routeLabel: string) {
     parsedPlan = parsePlanJson(rawPlan);
   } catch (error) {
     if (!isJsonParseFailure(error)) {
+      const parseErrorCode = classifyErrorCode(error, "parse");
+      console.error(`[${routeLabel}] Plan schema validation failed`, {
+        jobId: claimedJob.id,
+        message: sanitizeMessage(error),
+      });
       await failJob(
         claimedJob,
-        classifyErrorCode(error, "parse"),
-        sanitizeMessage(error),
+        parseErrorCode,
+        mapPlanJobErrorMessage(parseErrorCode) ?? "Nie udało się wygenerować planu. Spróbuj ponownie.",
         false,
       );
       return NextResponse.json(
@@ -192,11 +198,15 @@ async function runWorker(routeLabel: string) {
       const repairedRawPlan = await repairPlanJson(rawPlan);
       parsedPlan = parsePlanJson(repairedRawPlan);
     } catch (repairError) {
-      const finalErrorMessage = sanitizeMessage(repairError);
+      const parseErrorCode = classifyErrorCode(repairError, "parse");
+      console.error(`[${routeLabel}] Plan repair failed`, {
+        jobId: claimedJob.id,
+        message: sanitizeMessage(repairError),
+      });
       await failJob(
         claimedJob,
-        classifyErrorCode(repairError, "parse"),
-        finalErrorMessage,
+        parseErrorCode,
+        mapPlanJobErrorMessage(parseErrorCode) ?? "Nie udało się wygenerować planu. Spróbuj ponownie.",
         false,
       );
       return NextResponse.json(

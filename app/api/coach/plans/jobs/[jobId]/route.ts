@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import {
+  type PlanJobStatusRow,
   PLAN_JOB_STATUS_SELECT,
   UUID_REGEX,
+  toPublicPlanJobStatus,
 } from "@/lib/api/plan-jobs";
 import { requireAuth } from "@/lib/api/auth-guard";
 import { createClient } from "@/lib/supabase/server";
@@ -54,5 +56,5 @@ export async function GET(
     );
   }
 
-  return NextResponse.json({ data });
+  return NextResponse.json({ data: toPublicPlanJobStatus(data as PlanJobStatusRow) });
 }
