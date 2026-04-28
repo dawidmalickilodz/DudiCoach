@@ -36,14 +36,18 @@ function secureEquals(a: string, b: string) {
   return timingSafeEqual(left, right);
 }
 
-function extractIncomingSecret(request: NextRequest) {
-  const direct = request.headers.get(WORKER_SECRET_HEADER);
-  if (direct) return direct;
-
+function extractBearerSecret(request: NextRequest) {
   const authHeader = request.headers.get(AUTHORIZATION_HEADER);
   if (!authHeader) return null;
   if (!authHeader.toLowerCase().startsWith("bearer ")) return null;
   return authHeader.slice("bearer ".length).trim();
+}
+
+function extractManualWorkerSecret(request: NextRequest) {
+  const direct = request.headers.get(WORKER_SECRET_HEADER);
+  if (direct) return direct;
+
+  return extractBearerSecret(request);
 }
 
 function sanitizeMessage(input: unknown) {
@@ -95,25 +99,7 @@ function parsePromptInputs(raw: unknown): PlanJobPromptInputs {
   return parsed.data;
 }
 
-/**
- * POST /api/internal/plans/jobs/run
- * Internal cron/worker trigger. Claims at most one job and processes it.
- */
-export async function POST(request: NextRequest) {
-  const expectedSecret = process.env.PLAN_JOBS_WORKER_SECRET;
-  if (!expectedSecret) {
-    console.error("[POST /api/internal/plans/jobs/run] Missing PLAN_JOBS_WORKER_SECRET");
-    return NextResponse.json(
-      { error: "Worker misconfigured" },
-      { status: 500 },
-    );
-  }
-
-  const incomingSecret = extractIncomingSecret(request);
-  if (!incomingSecret || !secureEquals(incomingSecret, expectedSecret)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+async function runWorker(routeLabel: string) {
   const supabase = createAdminClient();
   const { data: claimData, error: claimError } = await supabase.rpc(
     "claim_pending_plan_generation_job",
@@ -121,7 +107,7 @@ export async function POST(request: NextRequest) {
   );
 
   if (claimError) {
-    console.error("[POST /api/internal/plans/jobs/run] Claim RPC failed", {
+    console.error(`[${routeLabel}] Claim RPC failed`, {
       code: claimError.code,
       message: claimError.message,
     });
@@ -201,7 +187,7 @@ export async function POST(request: NextRequest) {
   );
 
   if (completeError || !completedData || completedData.length === 0) {
-    console.error("[POST /api/internal/plans/jobs/run] Complete RPC failed", {
+    console.error(`[${routeLabel}] Complete RPC failed`, {
       code: completeError?.code,
       message: completeError?.message,
       jobId: claimedJob.id,
@@ -227,4 +213,48 @@ export async function POST(request: NextRequest) {
     },
     { status: 200 },
   );
+}
+
+/**
+ * GET /api/internal/plans/jobs/run
+ * Vercel Cron trigger. Requires Authorization: Bearer ${CRON_SECRET}.
+ */
+export async function GET(request: NextRequest) {
+  const expectedCronSecret = process.env.CRON_SECRET;
+  if (!expectedCronSecret) {
+    console.error("[GET /api/internal/plans/jobs/run] Missing CRON_SECRET");
+    return NextResponse.json(
+      { error: "Worker misconfigured" },
+      { status: 500 },
+    );
+  }
+
+  const incomingBearer = extractBearerSecret(request);
+  if (!incomingBearer || !secureEquals(incomingBearer, expectedCronSecret)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return runWorker("GET /api/internal/plans/jobs/run");
+}
+
+/**
+ * POST /api/internal/plans/jobs/run
+ * Manual/internal trigger. Requires PLAN_JOBS_WORKER_SECRET.
+ */
+export async function POST(request: NextRequest) {
+  const expectedSecret = process.env.PLAN_JOBS_WORKER_SECRET;
+  if (!expectedSecret) {
+    console.error("[POST /api/internal/plans/jobs/run] Missing PLAN_JOBS_WORKER_SECRET");
+    return NextResponse.json(
+      { error: "Worker misconfigured" },
+      { status: 500 },
+    );
+  }
+
+  const incomingSecret = extractManualWorkerSecret(request);
+  if (!incomingSecret || !secureEquals(incomingSecret, expectedSecret)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return runWorker("POST /api/internal/plans/jobs/run");
 }
