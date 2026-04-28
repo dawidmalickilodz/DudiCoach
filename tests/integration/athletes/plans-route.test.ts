@@ -40,7 +40,7 @@ vi.mock("@/lib/ai/rate-limiter", () => ({
 vi.mock("@/lib/ai/client", () => ({
   ANTHROPIC_TIMEOUT_MS: 120_000,
   MODEL: "claude-sonnet-4-6",
-  PLAN_MAX_TOKENS: 8000,
+  PLAN_MAX_TOKENS: 3000,
   generatePlan: (...args: unknown[]) => mockGeneratePlan(...args),
 }));
 
