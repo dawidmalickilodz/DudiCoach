@@ -2,6 +2,7 @@ import {
   trainingPlanJsonSchema,
   type TrainingPlanJson,
 } from "@/lib/validation/training-plan";
+import { z } from "zod";
 
 // ---------------------------------------------------------------------------
 // JSON extraction from Claude response
@@ -49,7 +50,11 @@ function extractJsonString(raw: string): string {
  * Parse/validation failures are NOT retryable — they are deterministic for a
  * given prompt and retrying would waste API quota.
  */
-export function parsePlanJson(raw: string): TrainingPlanJson {
+export function parseJsonWithSchema<T>(
+  raw: string,
+  schema: z.ZodType<T>,
+  entityLabel = "Claude response",
+): T {
   const jsonString = extractJsonString(raw);
 
   let parsed: unknown;
@@ -57,8 +62,12 @@ export function parsePlanJson(raw: string): TrainingPlanJson {
     parsed = JSON.parse(jsonString);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to parse JSON from Claude response: ${message}`);
+    throw new Error(`Failed to parse JSON from ${entityLabel}: ${message}`);
   }
 
-  return trainingPlanJsonSchema.parse(parsed);
+  return schema.parse(parsed);
+}
+
+export function parsePlanJson(raw: string): TrainingPlanJson {
+  return parseJsonWithSchema(raw, trainingPlanJsonSchema, "Claude response");
 }

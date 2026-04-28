@@ -82,6 +82,8 @@ interface ExtractedTextBlock {
 }
 
 const PLAN_OUTPUT_TOOL_NAME = "submit_training_plan";
+const PLAN_HEADER_TOOL_NAME = "submit_training_plan_header";
+const PLAN_WEEK_TOOL_NAME = "submit_training_plan_week";
 
 const TRAINING_PLAN_TOOL_SCHEMA: Anthropic.Messages.Tool["input_schema"] = {
   type: "object",
@@ -171,11 +173,112 @@ const TRAINING_PLAN_TOOL_SCHEMA: Anthropic.Messages.Tool["input_schema"] = {
   ],
 };
 
+const TRAINING_PLAN_HEADER_TOOL_SCHEMA: Anthropic.Messages.Tool["input_schema"] = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    planName: { type: "string" },
+    phase: { type: "string" },
+    summary: { type: "string" },
+    weeklyOverview: { type: "string" },
+    progressionNotes: { type: "string" },
+    nutritionTips: { type: "string" },
+    recoveryProtocol: { type: "string" },
+  },
+  required: [
+    "planName",
+    "phase",
+    "summary",
+    "weeklyOverview",
+    "progressionNotes",
+    "nutritionTips",
+    "recoveryProtocol",
+  ],
+};
+
+const TRAINING_PLAN_WEEK_TOOL_SCHEMA: Anthropic.Messages.Tool["input_schema"] = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    weekNumber: { type: "integer", minimum: 1, maximum: 4 },
+    focus: { type: "string" },
+    days: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          dayNumber: { type: "integer", minimum: 1, maximum: 7 },
+          dayName: { type: "string" },
+          warmup: { type: "string" },
+          exercises: {
+            type: "array",
+            minItems: 1,
+            maxItems: 4,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                name: { type: "string" },
+                sets: { type: "string" },
+                reps: { type: "string" },
+                intensity: { type: "string" },
+                rest: { type: "string" },
+                tempo: { type: "string" },
+                notes: { type: "string" },
+              },
+              required: [
+                "name",
+                "sets",
+                "reps",
+                "intensity",
+                "rest",
+                "tempo",
+                "notes",
+              ],
+            },
+          },
+          cooldown: { type: "string" },
+          duration: { type: "string" },
+        },
+        required: [
+          "dayNumber",
+          "dayName",
+          "warmup",
+          "exercises",
+          "cooldown",
+          "duration",
+        ],
+      },
+    },
+  },
+  required: ["weekNumber", "focus", "days"],
+};
+
 const PLAN_OUTPUT_TOOL: Anthropic.Messages.Tool = {
   name: PLAN_OUTPUT_TOOL_NAME,
   description:
     "Submit the final full training plan as one JSON object following the required schema.",
   input_schema: TRAINING_PLAN_TOOL_SCHEMA,
+  strict: true,
+  type: "custom",
+};
+
+const PLAN_HEADER_TOOL: Anthropic.Messages.Tool = {
+  name: PLAN_HEADER_TOOL_NAME,
+  description:
+    "Submit the training plan header fields only (no weeks array).",
+  input_schema: TRAINING_PLAN_HEADER_TOOL_SCHEMA,
+  strict: true,
+  type: "custom",
+};
+
+const PLAN_WEEK_TOOL: Anthropic.Messages.Tool = {
+  name: PLAN_WEEK_TOOL_NAME,
+  description:
+    "Submit exactly one training week object for the requested week number.",
+  input_schema: TRAINING_PLAN_WEEK_TOOL_SCHEMA,
   strict: true,
   type: "custom",
 };
@@ -218,20 +321,30 @@ function extractTextFromResponse(response: Anthropic.Messages.Message): string {
   return textBlock.text;
 }
 
-function extractToolInputFromResponse(response: Anthropic.Messages.Message): unknown {
+function extractToolInputFromResponse(
+  response: Anthropic.Messages.Message,
+  toolName: string,
+): unknown {
   const toolUse = response.content.find(
     (block): block is ToolUseBlock =>
-      block.type === "tool_use" && block.name === PLAN_OUTPUT_TOOL_NAME,
+      block.type === "tool_use" && block.name === toolName,
   );
   if (!toolUse) {
-    throw new Error("No structured tool output in Claude response");
+    throw new Error(`No structured tool output in Claude response (${toolName})`);
   }
   return toolUse.input;
 }
 
-export async function generatePlanStructured(
+async function generateStructuredWithTool(
   params: GeneratePlanParams,
-): Promise<{ plan: unknown; metadata: PlanGenerationMetadata }> {
+  {
+    tool,
+    toolName,
+  }: {
+    tool: Anthropic.Messages.Tool;
+    toolName: string;
+  },
+): Promise<{ output: unknown; metadata: PlanGenerationMetadata }> {
   const response = await anthropic.messages.create({
     model: MODEL,
     max_tokens: PLAN_MAX_TOKENS,
@@ -244,18 +357,57 @@ export async function generatePlanStructured(
       },
     ],
     messages: [{ role: "user", content: params.userPrompt }],
-    tools: [PLAN_OUTPUT_TOOL],
+    tools: [tool],
     tool_choice: {
       type: "tool",
-      name: PLAN_OUTPUT_TOOL_NAME,
+      name: toolName,
       disable_parallel_tool_use: true,
     },
   });
 
-  const plan = extractToolInputFromResponse(response);
+  const output = extractToolInputFromResponse(response, toolName);
+  return {
+    output,
+    metadata: toMetadata(response, "structured_tool", { toolInput: output }),
+  };
+}
+
+export async function generatePlanStructured(
+  params: GeneratePlanParams,
+): Promise<{ plan: unknown; metadata: PlanGenerationMetadata }> {
+  const { output: plan, metadata } = await generateStructuredWithTool(params, {
+    tool: PLAN_OUTPUT_TOOL,
+    toolName: PLAN_OUTPUT_TOOL_NAME,
+  });
   return {
     plan,
-    metadata: toMetadata(response, "structured_tool", { toolInput: plan }),
+    metadata,
+  };
+}
+
+export async function generatePlanHeaderStructured(
+  params: GeneratePlanParams,
+): Promise<{ header: unknown; metadata: PlanGenerationMetadata }> {
+  const { output: header, metadata } = await generateStructuredWithTool(params, {
+    tool: PLAN_HEADER_TOOL,
+    toolName: PLAN_HEADER_TOOL_NAME,
+  });
+  return {
+    header,
+    metadata,
+  };
+}
+
+export async function generatePlanWeekStructured(
+  params: GeneratePlanParams,
+): Promise<{ week: unknown; metadata: PlanGenerationMetadata }> {
+  const { output: week, metadata } = await generateStructuredWithTool(params, {
+    tool: PLAN_WEEK_TOOL,
+    toolName: PLAN_WEEK_TOOL_NAME,
+  });
+  return {
+    week,
+    metadata,
   };
 }
 
