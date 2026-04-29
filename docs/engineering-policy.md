@@ -1,8 +1,8 @@
 # Engineering Policy
 
 **Owner:** Dawid Malicki  
-**Version:** 1.0.0  
-**Last updated:** 2026-04-18  
+**Version:** 1.1.0
+**Last updated:** 2026-04-29
 **Status:** Active  
 **Scope:** Web and mobile application development for this repository
 
@@ -59,6 +59,26 @@ Do not mark work as done until required verification passed.
 - State assumptions explicitly when requirements are ambiguous.
 - Be conservative on auth, billing, data integrity, and production changes.
 
+## Mandatory task flow (all tasks)
+
+Before any implementation work:
+1. Produce a **Change Brief** with:
+   - problem statement
+   - evidence
+   - root cause hypothesis
+   - affected surfaces
+   - lane classification
+   - required gates
+   - expected files to change
+   - required tests/checks
+   - security/privacy considerations
+   - rollback plan
+   - definition of done
+2. Classify the task into Lane A/B/C **before any file edits**.
+3. Do not modify files before Change Brief + lane classification are complete.
+4. If evidence is insufficient, mark the task `Blocked` with exact missing evidence.
+5. For Lane C, G2 architecture/design approval is required before implementation.
+
 ## Hard rules (non-negotiable)
 
 - Never hardcode secrets or credentials.
@@ -89,24 +109,27 @@ Use when all are true:
 - limited blast radius
 
 Required flow:
-1. Mini plan
-2. Dev
-3. Required checks (lint/typecheck/tests/build as applicable)
-4. Independent code review
-5. Done
+1. Change Brief + lane classification
+2. Mini plan (G1)
+3. Dev (G3)
+4. Required checks (lint/typecheck/tests/build as applicable)
+5. Independent code review (G6)
+6. Done
 
 ### Lane B - Standard (default)
 
 Use for typical feature work that is not high-risk infrastructure/security.
 
 Required flow:
-1. Planner
-2. Dev
-3. UI/UX review (if user-facing)
-4. QA/Test
-5. Independent code review
-6. Security/performance review only if triggered
-7. Done
+1. Change Brief + lane classification
+2. Planner (G1)
+3. Dev (G3)
+4. UI/UX review (G4, if user-facing)
+5. QA/Test (G5)
+6. Security review (G7, when triggered)
+7. Runtime/performance review (G8, when triggered)
+8. Independent code review (G6)
+9. Done
 
 ### Lane C - Critical (high risk)
 
@@ -119,16 +142,17 @@ Mandatory if any apply:
 - production reliability-critical runtime behavior
 
 Required flow:
-1. Planner
-2. Architect
-3. Dev
-4. UI/UX review (if user-facing)
-5. QA/Test
-6. Security review (mandatory)
-7. Independent code review
-8. Performance review (if performance-sensitive)
-9. Release readiness check
-10. Done
+1. Change Brief + lane classification
+2. Planner (G1)
+3. Architect/design (G2) **before implementation**
+4. Dev (G3)
+5. UI/UX review (G4, if user-facing)
+6. QA/Test (G5)
+7. Security review (G7, mandatory)
+8. Runtime/performance review (G8, mandatory for runtime-sensitive work)
+9. Independent code review (G6) before merge
+10. Release readiness + runtime smoke (G9) before closeout
+11. Done
 
 ## Stage gates (task cannot pass with failed gate)
 
@@ -137,10 +161,10 @@ Required flow:
 - G3 Implementation complete
 - G4 UI review passed (if applicable)
 - G5 QA verification passed
-- G6 Independent code review passed
-- G7 Security review passed (if required)
-- G8 Performance review passed (if required)
-- G9 Release readiness passed (Lane C)
+- G6 Independent code review passed (required before merge)
+- G7 Security review passed (mandatory for Lane C and for auth, RLS, secrets, private data, public endpoints, or internal worker routes)
+- G8 Runtime/performance review passed (mandatory for AI generation, worker/cron, Vercel runtime/config, and Supabase runtime behavior changes)
+- G9 Release readiness and runtime smoke evidence passed before closeout (mandatory for Lane C and runtime-critical changes)
 
 If any required gate fails: return to Dev with explicit remediation items.
 
@@ -159,6 +183,8 @@ Required for Lane C:
 - billing/auth side effects reviewed
 - production-only behavior considered
 - user communication or admin action noted if needed
+- runtime smoke checklist defined before release
+- runtime smoke evidence captured before closeout
 
 ## Independence requirement
 
@@ -174,6 +200,7 @@ Independent verification can be done by:
 - CI checks + separate reviewer sign-off
 
 Do not simulate independent review in one combined self-approval step.
+Do not merge without a passing independent review verdict at G6.
 
 ## Role responsibilities
 
@@ -259,15 +286,20 @@ Verify:
 - non-leaky error messaging
 - creator-facing admin, billing, and operational surfaces are protected against privilege misuse, unintended free access, destructive mistakes, and sensitive business data leakage
 
-### Performance Reviewer (when triggered)
+### Runtime Reviewer (G8 owner)
 
 Verify:
 - no unnecessary rerenders/fetches
 - efficient query scope/payloads
 - no obvious critical-flow regressions
 - responsive behavior on web/mobile affected paths
+- AI generation runtime behavior is within operational budget
+- worker/cron trigger semantics and auth are correct for the target platform
+- Vercel runtime/config assumptions are valid for the affected routes
+- Supabase runtime behavior aligns with expected access and execution model
+- model/config changes include measurable latency/reliability tradeoff assessment
 
-## Trigger matrix for optional reviews
+## Trigger matrix for required conditional reviews
 
 ### Security review required when any apply
 
@@ -278,14 +310,20 @@ Verify:
 - file uploads/user-generated content handling
 - admin/destructive actions
 - secret/environment/runtime security impact
+- public endpoint behavior changes
+- internal worker route behavior changes
 
-### Performance review required when any apply
+### Runtime/performance review required when any apply
 
 - initial load/shared layout changes
 - large lists/dashboards
 - realtime/polling behavior
 - heavy queries or payload changes
 - mobile startup/critical interaction path changes
+- AI generation path changes
+- worker/cron behavior changes
+- Vercel runtime/config behavior changes
+- Supabase runtime behavior changes
 
 ## Critical flows requiring stronger verification
 
@@ -375,6 +413,10 @@ Treat as sensitive by default:
 - If a required gate fails, task status is `Rework` or `Blocked`.
 - Document exact blocker and next action.
 - Never hide uncertainty; surface residual risk explicitly.
+- If the same defect receives 2 failed fixes (or reopens twice), stop iterative hotfixing and escalate:
+  - classify as Lane C
+  - require fresh G2 architecture/design before further implementation
+  - define updated rollback and runtime verification plan before next code attempt
 
 ## Completion standard
 
@@ -383,6 +425,7 @@ A task is done only when:
 - required tests/checks ran and passed
 - required independent reviews passed
 - security/performance reviews passed when triggered
+- release readiness and runtime smoke evidence passed when required by G9
 - residual risks and follow-ups are documented
 
 ## Required final delivery format
