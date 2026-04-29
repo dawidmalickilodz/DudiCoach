@@ -286,13 +286,18 @@ Verify:
 - non-leaky error messaging
 - creator-facing admin, billing, and operational surfaces are protected against privilege misuse, unintended free access, destructive mistakes, and sensitive business data leakage
 
-### Performance Reviewer (when triggered)
+### Runtime Reviewer (G8 owner)
 
 Verify:
 - no unnecessary rerenders/fetches
 - efficient query scope/payloads
 - no obvious critical-flow regressions
 - responsive behavior on web/mobile affected paths
+- AI generation runtime behavior is within operational budget
+- worker/cron trigger semantics and auth are correct for the target platform
+- Vercel runtime/config assumptions are valid for the affected routes
+- Supabase runtime behavior aligns with expected access and execution model
+- model/config changes include measurable latency/reliability tradeoff assessment
 
 ## Trigger matrix for required conditional reviews
 
@@ -408,6 +413,10 @@ Treat as sensitive by default:
 - If a required gate fails, task status is `Rework` or `Blocked`.
 - Document exact blocker and next action.
 - Never hide uncertainty; surface residual risk explicitly.
+- If the same defect receives 2 failed fixes (or reopens twice), stop iterative hotfixing and escalate:
+  - classify as Lane C
+  - require fresh G2 architecture/design before further implementation
+  - define updated rollback and runtime verification plan before next code attempt
 
 ## Completion standard
 
