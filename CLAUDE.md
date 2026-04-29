@@ -12,9 +12,10 @@ If this file conflicts with `docs/engineering-policy.md`, follow `docs/engineeri
 - For non-trivial work, determine the correct risk lane first (see policy §Agile risk lanes), then invoke `planner` before implementation.
 - For Lane C, do not implement before G2 architecture/design approval.
 - Run security review (G7) when auth/RLS/secrets/private data/public endpoints/internal worker surfaces are touched.
-- Run runtime/performance review (G8) when AI generation, worker/cron, Vercel runtime/config, or Supabase runtime behavior is affected.
+- Run runtime/performance review (G8 owner) when AI generation, worker/cron, Vercel runtime/config, or Supabase runtime behavior is affected.
 - Require independent code review (G6) before merge.
 - Require release readiness + runtime smoke evidence (G9) before closeout for Lane C/runtime-critical work.
+- If the same defect receives 2 failed fixes, escalate to Lane C with a fresh G2 design before further code attempts.
 - Do not declare work complete unless all required gates for the selected lane have passed.
 - Summarise every completed task by: gates passed, exact checks run, review verdicts, and residual risks.
 - If a subagent is unavailable, state the limitation explicitly and continue with the safest available fallback.
