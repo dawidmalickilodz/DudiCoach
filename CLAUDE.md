@@ -5,8 +5,17 @@ If this file conflicts with `docs/engineering-policy.md`, follow `docs/engineeri
 
 ## Additional Claude-specific rules
 
+- Produce a full Change Brief before every task.
+- Classify lane (A/B/C) before any file edits.
+- Do not modify files before Change Brief + lane classification are complete.
 - Use subagents when specialised analysis or review is useful.
 - For non-trivial work, determine the correct risk lane first (see policy §Agile risk lanes), then invoke `planner` before implementation.
+- For Lane C, do not implement before G2 architecture/design approval.
+- Run security review (G7) when auth/RLS/secrets/private data/public endpoints/internal worker surfaces are touched.
+- Run runtime/performance review (G8 owner) when AI generation, worker/cron, Vercel runtime/config, or Supabase runtime behavior is affected.
+- Require independent code review (G6) before merge.
+- Require release readiness + runtime smoke evidence (G9) before closeout for Lane C/runtime-critical work.
+- If the same defect receives 2 failed fixes, escalate to Lane C with a fresh G2 design before further code attempts.
 - Do not declare work complete unless all required gates for the selected lane have passed.
 - Summarise every completed task by: gates passed, exact checks run, review verdicts, and residual risks.
 - If a subagent is unavailable, state the limitation explicitly and continue with the safest available fallback.
@@ -35,8 +44,8 @@ as the source of truth. Use the table below to select the correct agent for each
 
 | Lane | Use when | Required gates |
 |---|---|---|
-| **A — Fast** | Small scoped change, no schema/auth/billing/infra change, limited blast radius | G1 mini-plan → G3 dev → checks → G6 review |
-| **B — Standard** | Typical feature work, not high-risk | G1 → G3 → G4 (if user-facing) → G5 → G6 |
-| **C — Critical** | Schema change, auth/RLS, billing/Stripe, secrets, admin data, production-critical behaviour | G1 → G2 → G3 → G4 → G5 → G7 → G6 → G8 (if perf) → G9 |
+| **A — Fast** | Small scoped change, no schema/auth/billing/infra change, limited blast radius | Change Brief + lane → G1 mini-plan → G3 dev → checks → G6 review |
+| **B — Standard** | Typical feature work, not high-risk | Change Brief + lane → G1 → G3 → G4 (if user-facing) → G5 → G7/G8 when triggered → G6 |
+| **C — Critical** | Schema change, auth/RLS, billing/Stripe, secrets, admin data, production-critical behaviour | Change Brief + lane → G1 → G2 (before implementation) → G3 → G4 → G5 → G7 → G8 (runtime/perf as required by policy) → G6 (before merge) → G9 (release readiness + runtime smoke) |
 
 When uncertain between two lanes, choose the safer lane.
