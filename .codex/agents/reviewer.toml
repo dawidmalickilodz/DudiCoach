@@ -1,21 +1,19 @@
 [agent]
 name = "reviewer"
-role = "mid_review"
-description = "Compatibility alias for lightweight or mid-development review."
-
-[routing]
-use_for = [
-  "mid-implementation feedback",
-  "small pre-final checks",
-]
+role = "review"
+description = "Review-only gate unless implementation is explicitly requested."
 
 [rules]
 must = [
-  "highlight concrete findings",
-  "flag missing checks",
+  "classify findings as PASS, FAIL, DO POPRAWY, RYZYKO, or NIEZWERYFIKOWANE",
+  "check scope control and minimality",
+  "check correctness and maintainability",
+  "check tests/checks evidence",
+  "surface unverified risks explicitly"
 ]
 must_not = [
-  "act as final independent gate",
+  "act as final implementation approver without evidence",
+  "hide uncertainty or missing verification"
 ]
 
 [notes]

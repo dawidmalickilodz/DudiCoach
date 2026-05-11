@@ -1,10 +1,12 @@
 # Engineering Policy
 
 **Owner:** Dawid Malicki  
-**Version:** 1.1.0
-**Last updated:** 2026-04-29
+**Project:** Dudi Coach App
+**Version:** 1.2.0
+**Last updated:** 2026-05-11
 **Status:** Active  
 **Scope:** Web and mobile application development for this repository
+**Source of truth:** This file is the authoritative engineering workflow and safety policy.
 
 ## Change process
 
@@ -50,6 +52,13 @@ Optimize for:
 
 Do not mark work as done until required verification passed.
 
+## Core behavioral rules (preserve exactly)
+
+1. Don’t assume. Don’t hide confusion. Surface tradeoffs.
+2. Minimum code that solves the problem. Nothing speculative.
+3. Touch only what you must. Clean up only your own mess.
+4. Define success criteria. Loop until verified.
+
 ## Core principles
 
 - Prefer the smallest correct change over broad refactors.
@@ -68,6 +77,8 @@ Before any implementation work:
    - root cause hypothesis
    - affected surfaces
    - lane classification
+   - scope
+   - out of scope
    - required gates
    - expected files to change
    - required tests/checks
@@ -89,6 +100,17 @@ Before any implementation work:
 - Never silently introduce breaking changes.
 - Never approve your own work as final approver.
 - Never report a task as complete based on reasoning alone when a deterministic check was possible but not run.
+
+## Anti-hallucination rules
+
+The agent must not claim that:
+- a file exists unless it has inspected it
+- tests passed unless they were actually run
+- CI is green unless there is evidence
+- a PR is safe unless relevant risks were reviewed
+- a migration is correct unless SQL was inspected
+- branch protection is enabled unless verified
+- runtime behavior is confirmed unless tested or evidenced
 
 ## Agile risk lanes (routing first)
 
@@ -368,12 +390,29 @@ Treat as sensitive by default:
 - creator financial/operational data
 - API secrets and internal tokens
 
+## Security-sensitive domains
+
+For authentication, authorization, Supabase RPC, RLS policies, database grants, SECURITY DEFINER functions, Stripe, payments, webhooks, user data, secrets, environment variables, and production configuration:
+- use least privilege by default
+- define trust boundaries explicitly
+- keep privileged behavior server-side only
+- require explicit verification evidence before claiming safety
+
 ## Supabase rules
 
 - Treat Supabase as a security boundary, not just storage.
 - Use least privilege and RLS for user-owned data by default.
+- Do not bypass RLS.
+- Do not grant permissions to PUBLIC unless explicitly justified.
 - Validate ownership assumptions (`auth.uid()`) explicitly.
 - Keep service-role usage server-side only.
+- For SECURITY DEFINER functions, verify `search_path`.
+- For RPC functions, verify EXECUTE privileges.
+- Use REVOKE/GRANT intentionally and document why.
+- Do not modify auth flows unless explicitly in scope.
+- Do not modify `handle_new_user` unless explicitly in scope.
+- Prefer additive migrations.
+- Destructive migrations require explicit approval.
 - For schema changes, consider existing data, nullability, backfills, and rollback.
 - Review indexes for new high-traffic queries.
 
@@ -381,10 +420,14 @@ Treat as sensitive by default:
 
 - Treat billing as high-risk.
 - Never trust client-side payment state alone.
+- Do not trust client-provided payment data.
 - Verify webhook signatures.
 - Ensure webhook idempotency and duplicate-event safety.
+- Do not store card data.
+- Do not log secrets or payment-sensitive data.
 - Keep test/live mode separation explicit.
 - Keep entitlement changes consistent under retries/delays.
+- Billing, subscription, checkout, and webhook changes require an explicit test plan.
 
 ## Vercel and deployment rules
 
@@ -441,3 +484,13 @@ At task end, provide:
 8. Performance findings
 9. Known limitations/residual risks
 10. Follow-up recommendations
+
+## Response continuity requirement
+
+Every technical response must start with:
+
+## Status pracy
+- Obecnie pracujemy nad:
+- Dotychczas uzyskaliśmy:
+
+Status must be short, factual, and must not invent progress.
