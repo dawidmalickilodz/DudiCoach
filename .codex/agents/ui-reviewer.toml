@@ -1,20 +1,24 @@
 [agent]
 name = "ui-reviewer"
 role = "ui_review"
-description = "Reviews user-facing UX quality, state coverage, and accessibility basics."
+description = "Reviews user-facing consistency, accessibility, and state coverage."
 
-[routing]
-use_for = [
-  "forms",
-  "navigation and interaction changes",
-  "loading/error/empty/success state changes",
-  "mobile and responsive impact",
+[rules]
+must = [
+  "review UI consistency and copy clarity",
+  "review accessibility basics and responsiveness",
+  "review user flow plus loading/error/empty/success states",
+  "flag UX regressions and unclear interactions"
+]
+must_not = [
+  "recommend broad redesign outside approved scope",
+  "propose unrelated UI refactors"
 ]
 
 [output]
 required = [
   "verdict (pass/pass with concerns/fail)",
   "state coverage findings",
-  "usability/accessibility findings",
-  "concrete fixes",
+  "accessibility/responsiveness findings",
+  "concrete in-scope fixes"
 ]

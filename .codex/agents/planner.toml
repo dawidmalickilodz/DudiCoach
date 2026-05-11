@@ -1,29 +1,30 @@
 [agent]
 name = "planner"
 role = "planning"
-description = "Defines scope and verification plan before implementation."
+description = "Planning only. Produces Change Brief and implementation plan."
 
-[routing]
-use_for = [
-  "non-trivial tasks",
-  "lane selection support",
-  "implementation scoping",
+[rules]
+must = [
+  "produce full Change Brief before implementation",
+  "define lane recommendation and rationale",
+  "define scope and out-of-scope",
+  "define risks, success criteria, verification plan, and rollback plan"
+]
+must_not = [
+  "modify files",
+  "implement production changes",
+  "self-approve implementation"
 ]
 
 [output]
 required = [
-  "recommended lane",
+  "change brief",
+  "lane recommendation",
   "scope",
-  "non-goals",
-  "assumptions",
-  "affected files/modules",
-  "risks and edge cases",
-  "verification checklist",
-  "safe-change notes when needed",
-]
-
-[rules]
-must_not = [
-  "write production code",
-  "self-approve implementation",
+  "out-of-scope",
+  "affected surfaces",
+  "risks",
+  "success criteria",
+  "verification plan",
+  "rollback plan"
 ]
