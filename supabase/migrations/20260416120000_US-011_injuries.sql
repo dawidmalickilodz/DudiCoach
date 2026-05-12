@@ -1,4 +1,4 @@
-﻿-- Migration: US-011 - injuries table + RLS + public RPC by share_code
+-- Migration: US-011 - injuries table + RLS + public RPC by share_code
 -- Applied: 2026-04-16
 -- Story: backlog/stories/US-011-athlete-injuries.md
 -- Design: docs/design/US-011-design.md
