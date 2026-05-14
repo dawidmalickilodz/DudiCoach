@@ -43,6 +43,16 @@ Status: PASS
 
 Only status codes and row counts are recorded; no private payloads are included.
 
+### 3a) Exposed share-code rotation follow-up
+Status: PASS
+
+- Exposed code `DKG3YF` was rotated manually through authenticated coach flow.
+- Post-rotation verification:
+  - `GET /api/athlete/DKG3YF` -> 404
+  - `GET /api/athlete/DKG3YF/plans` -> 404
+- Old code is no longer active/reachable for athlete or plans data.
+- No new share code was recorded or printed in this evidence note.
+
 ### 4) Authenticated coach smoke
 Status: NIEZWERYFIKOWANE
 
@@ -63,7 +73,7 @@ Status: DO POPRAWY (audit-trail gap)
 ## Overall G9 Result
 PARTIAL / BEHAVIORAL PASS WITH EVIDENCE GAPS
 
-Behavioral privilege outcomes are verified as correct, but formal closeout still requires missing evidence and migration audit-trail decision.
+Behavioral privilege outcomes are verified as correct, and exposed share-code rotation follow-up is completed (PASS). Formal closeout still requires missing evidence and migration audit-trail decision.
 
 ## Required Follow-ups
 1. Execute authenticated coach smoke on a safe test account:
