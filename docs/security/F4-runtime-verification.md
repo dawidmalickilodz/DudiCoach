@@ -1,4 +1,4 @@
-﻿# F4 Runtime Verification Note (PR #49)
+# F4 Runtime Verification Note (PR #49)
 
 ## Metadata
 - Date: 2026-05-13
@@ -34,12 +34,12 @@ Interpretation: restricted RPCs are denied at execute privilege level for anon.
 ### 3) Public share anon smoke
 Status: PASS
 
-- anon -> `get_athlete_by_share_code(DKG3YF)` -> 200, rows=1
-- anon -> `get_athlete_by_share_code(ZZZ234)` -> 200, rows=0
-- anon -> `get_active_injuries_by_share_code(DKG3YF)` -> 200, rows=0
-- anon -> `get_active_injuries_by_share_code(ZZZ234)` -> 200, rows=0
-- anon -> `get_latest_plan_by_share_code(DKG3YF)` -> 200, rows=0
-- anon -> `get_latest_plan_by_share_code(ZZZ234)` -> 200, rows=0
+- anon -> `get_athlete_by_share_code(<SAMPLE-ACTIVE-CODE>)` -> 200, rows=1
+- anon -> `get_athlete_by_share_code(<SAMPLE-INVALID-CODE>)` -> 200, rows=0
+- anon -> `get_active_injuries_by_share_code(<SAMPLE-ACTIVE-CODE>)` -> 200, rows=0
+- anon -> `get_active_injuries_by_share_code(<SAMPLE-INVALID-CODE>)` -> 200, rows=0
+- anon -> `get_latest_plan_by_share_code(<SAMPLE-ACTIVE-CODE>)` -> 200, rows=0
+- anon -> `get_latest_plan_by_share_code(<SAMPLE-INVALID-CODE>)` -> 200, rows=0
 
 Only status codes and row counts are recorded; no private payloads are included.
 
