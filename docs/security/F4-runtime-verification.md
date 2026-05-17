@@ -54,9 +54,13 @@ Status: PASS
 - No new share code was recorded or printed in this evidence note.
 
 ### 4) Authenticated coach smoke
-Status: NIEZWERYFIKOWANE
+Status: PASS
 
-Reason: no safe authenticated credentials/session were available during this verification.
+- Verification was performed manually via authenticated coach UI/session.
+- Authenticated coach reset share code flow: PASS.
+- Authenticated coach create athlete flow: PASS.
+- Share code generated for the new athlete: PASS.
+- No private payloads, athlete details, or new share codes were recorded in this note.
 
 ### 5) Runtime logs review
 Status: NIEZWERYFIKOWANE
@@ -76,12 +80,9 @@ PARTIAL / BEHAVIORAL PASS WITH EVIDENCE GAPS
 Behavioral privilege outcomes are verified as correct, and exposed share-code rotation follow-up is completed (PASS). Formal closeout still requires missing evidence and migration audit-trail decision.
 
 ## Required Follow-ups
-1. Execute authenticated coach smoke on a safe test account:
-   - coach reset share route
-   - athlete creation/share_code generation
-2. Review Supabase and Vercel runtime logs after grant repair.
-3. Decide and document how to close migration tracking audit-trail gap without silently inserting tracking rows.
-4. Optionally verify Supabase advisor warning delta after hardening.
+1. Review Supabase and Vercel runtime logs after grant repair.
+2. Decide and document how to close migration tracking audit-trail gap without silently inserting tracking rows.
+3. Optionally verify Supabase advisor warning delta after hardening.
 
 ## Closeout Recommendation
 Do not mark PR #49 runtime verification as fully closed until follow-ups (1)-(3) are completed or explicitly accepted as residual risk with owner/date.
