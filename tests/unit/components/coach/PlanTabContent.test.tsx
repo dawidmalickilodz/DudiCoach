@@ -33,9 +33,12 @@ vi.mock("@/lib/api/plans", async () => {
 });
 
 vi.mock("@/components/coach/PlanList", () => ({
-  default: ({ plans }: { plans: TrainingPlan[] }) => (
-    <div data-testid="plan-list">{plans.length}</div>
-  ),
+  default: ({ plans }: { plans: TrainingPlan[] }) =>
+    plans.length === 0 ? (
+      <p>{pl.coach.athlete.plans.noPlan}</p>
+    ) : (
+      <div data-testid="plan-list">{plans.length}</div>
+    ),
 }));
 
 vi.mock("@/components/coach/PlanViewer", () => ({
@@ -166,6 +169,15 @@ describe("PlanTabContent async plan generation flow", () => {
     });
   });
 
+  it("renders no-plan empty-state only once when there are no plans", async () => {
+    const { Wrapper } = createWrapper();
+    render(<PlanTabContent athlete={makeAthlete()} />, { wrapper: Wrapper });
+
+    await waitFor(() => {
+      expect(screen.getAllByText(pl.coach.athlete.plans.noPlan)).toHaveLength(1);
+    });
+  });
+
   it("shows queued state after job creation", async () => {
     const { Wrapper } = createWrapper();
     render(<PlanTabContent athlete={makeAthlete()} />, { wrapper: Wrapper });
@@ -256,7 +268,7 @@ describe("PlanTabContent async plan generation flow", () => {
     });
   });
 
-  it("shows poll-timeout state with refresh CTA", async () => {
+  it("shows informational long-running state and continues polling after timeout", async () => {
     vi.useFakeTimers();
     mockFetchPlanGenerationJobStatus.mockResolvedValue(
       makeJob({ status: "processing" }),
@@ -279,12 +291,23 @@ describe("PlanTabContent async plan generation flow", () => {
       await Promise.resolve();
     });
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
+    expect(screen.getByRole("status")).toHaveTextContent(
       pl.coach.athlete.plans.pollTimeout,
     );
     expect(
       screen.getByRole("button", { name: pl.coach.athlete.plans.refreshStatus }),
     ).toBeInTheDocument();
+
+    const callsAtTimeout = mockFetchPlanGenerationJobStatus.mock.calls.length;
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_100);
+      await Promise.resolve();
+    });
+
+    expect(mockFetchPlanGenerationJobStatus.mock.calls.length).toBeGreaterThan(
+      callsAtTimeout,
+    );
   });
 
   it("handles duplicate active job (409) gracefully", async () => {

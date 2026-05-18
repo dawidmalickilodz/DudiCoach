@@ -89,10 +89,10 @@ export default function PlanTabContent({ athlete }: PlanTabContentProps) {
       ? planJobKeys.detail(activeJobId)
       : [...planJobKeys.all, "inactive"],
     queryFn: () => fetchPlanGenerationJobStatus(activeJobId!),
-    enabled: Boolean(activeJobId) && !isPollTimedOut,
+    enabled: Boolean(activeJobId),
     retry: false,
     refetchInterval: (query) => {
-      if (!activeJobId || isPollTimedOut) return false;
+      if (!activeJobId) return false;
       const status = query.state.data?.status;
       if (status === "succeeded" || status === "failed" || status === "cancelled") {
         return false;
@@ -100,7 +100,7 @@ export default function PlanTabContent({ athlete }: PlanTabContentProps) {
 
       const startedAt = activeJobStartedAtMs ?? Date.now();
       const elapsed = Date.now() - startedAt;
-      if (elapsed >= POLL_TIMEOUT_MS) return false;
+      if (elapsed >= POLL_TIMEOUT_MS) return POLL_SLOW_MS;
       if (elapsed >= 90_000) return POLL_SLOW_MS;
       if (elapsed >= 30_000) return POLL_MEDIUM_MS;
       return POLL_FAST_MS;
@@ -222,8 +222,8 @@ export default function PlanTabContent({ athlete }: PlanTabContentProps) {
 
       {feedbackKind === "poll_timeout" && (
         <p
-          role="alert"
-          className="text-destructive bg-destructive/10 border-destructive/30 rounded-card border px-4 py-3 text-sm"
+          role="status"
+          className="text-muted-foreground bg-muted/40 border-border rounded-card border px-4 py-3 text-sm"
         >
           {pl.coach.athlete.plans.pollTimeout}
           <button
@@ -302,9 +302,7 @@ export default function PlanTabContent({ athlete }: PlanTabContentProps) {
             {selectedPlan ? (
               <PlanViewer key={selectedPlan.id} plan={selectedPlan} />
             ) : (
-              <p className="text-muted-foreground text-sm">
-                {pl.coach.athlete.plans.noPlan}
-              </p>
+              null
             )}
           </section>
         </div>
