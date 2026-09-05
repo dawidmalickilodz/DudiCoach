@@ -194,27 +194,16 @@ test.describe("US-012 - fitness tests feature", () => {
       ).toBeVisible();
       await expect(page.getByText(/Brak wyników testów/i)).toBeVisible();
 
-      // AC-3: open form and submit a result.
-      await page.getByRole("button", { name: /Dodaj wynik/i }).click();
-      await expect(
-        page.getByRole("heading", { name: /Nowy wynik testu/i }),
-      ).toBeVisible();
-
-      // squat_1rm is a universal test (sports: "all") — valid regardless of sport.
+      // AC-3: form is always visible — submit a result directly.
       await page.locator("#fitness-test-key").selectOption("squat_1rm");
       await page.locator("#fitness-test-value").fill("100");
       await page.locator("#fitness-test-date").fill(today);
-      await page.getByRole("button", { name: /Zapisz wynik/i }).click();
-
-      // Form closes after successful submit.
-      await expect(
-        page.getByRole("heading", { name: /Nowy wynik testu/i }),
-      ).toBeHidden({ timeout: 10_000 });
+      await page.getByRole("button", { name: /Dodaj wynik/i }).click();
 
       // Result appears in history with name and value.
-      await expect(page.getByText("Przysiad 1RM")).toBeVisible({
-        timeout: 10_000,
-      });
+      await expect(
+        page.getByRole("article").getByText("Przysiad 1RM"),
+      ).toBeVisible({ timeout: 10_000 });
       await expect(page.getByText(/100\s*kg/)).toBeVisible();
     } finally {
       if (athleteId) {
@@ -272,14 +261,15 @@ test.describe("US-012 - fitness tests feature", () => {
       ).toHaveCount(0);
 
       // Hint text visible when sport is unset.
-      await expect(page.getByText(/Ustaw sport zawodnika/i)).toBeVisible();
+      await expect(
+        page.getByText(/Sport zawodnika nie został ustawiony/i),
+      ).toBeVisible();
 
       // Set sport via API, then reload the page so the server re-renders with
       // the updated athlete.sport prop.
       await setAthleteSport(page.request, athleteId, "pilka_nozna");
       await page.goto(`/athletes/${athleteId}`);
       await page.getByRole("tab", { name: /^Testy$/i }).click();
-      await page.getByRole("button", { name: /Dodaj wynik/i }).click();
 
       // After sport is set: pilka_nozna-specific tests are present.
       await expect(
@@ -296,7 +286,9 @@ test.describe("US-012 - fitness tests feature", () => {
       ).toBeAttached();
 
       // Hint must be gone once sport is set.
-      await expect(page.getByText(/Ustaw sport zawodnika/i)).toHaveCount(0);
+      await expect(
+        page.getByText(/Sport zawodnika nie został ustawiony/i),
+      ).toHaveCount(0);
     } finally {
       if (athleteId) {
         await cleanupAthlete(page.request, athleteId);
@@ -351,22 +343,22 @@ test.describe("US-012 - fitness tests feature", () => {
       await page.getByRole("tab", { name: /^Testy$/i }).click();
 
       // squat_1rm: today(100) vs yesterday(90) → delta=+10, higher_is_better
-      // TrendIndicator renders: "↑ 10 kg"  (arrow=↑, absDelta=10, unit=kg)
-      await expect(page.getByText(/↑\s*10\s*kg/)).toBeVisible({
+      // TrendIndicator renders: "+ 10"  (marker="+", formattedDelta="10")
+      await expect(page.getByText(/^\+\s*10$/)).toBeVisible({
         timeout: 10_000,
       });
 
       // run_1000m: today(200) vs yesterday(240) → delta=-40, lower_is_better
-      // TrendIndicator renders: "↓ 40 s"  (arrow=↓, absDelta=40, unit=s)
-      await expect(page.getByText(/↓\s*40\s*s/)).toBeVisible({
+      // TrendIndicator renders: "- 40"  (marker="-", formattedDelta="40")
+      await expect(page.getByText(/^-\s*40$/)).toBeVisible({
         timeout: 10_000,
       });
 
       // Older results (yesterday for each test) have no trend indicator text
       // because there is no prior result to compare against.
       // We assert that each trend text appears exactly once (not doubled).
-      await expect(page.getByText(/↑\s*10\s*kg/)).toHaveCount(1);
-      await expect(page.getByText(/↓\s*40\s*s/)).toHaveCount(1);
+      await expect(page.getByText(/^\+\s*10$/)).toHaveCount(1);
+      await expect(page.getByText(/^-\s*40$/)).toHaveCount(1);
     } finally {
       if (athleteId) {
         await cleanupAthlete(page.request, athleteId);
@@ -401,24 +393,25 @@ test.describe("US-012 - fitness tests feature", () => {
       await neutralizeVercelLiveFeedbackOverlay(page);
 
       // Result visible in history.
-      await expect(page.getByText("Deska")).toBeVisible({ timeout: 10_000 });
+      const resultArticle = page.getByRole("article").filter({ hasText: "Deska" });
+      await expect(resultArticle).toBeVisible({ timeout: 10_000 });
 
       // Step 1: click Usuń → confirm area appears, no deletion yet.
-      await page.getByRole("button", { name: /^Usuń$/i }).click();
-      await expect(page.getByText(/Na pewno usunąć/i)).toBeVisible();
+      await resultArticle.getByRole("button", { name: /^Usuń$/i }).click();
+      await expect(page.getByText(/Potwierdź usunięcie wyniku/i)).toBeVisible();
 
       // Cancel path: Anuluj → confirm area gone, result still present.
       await page.getByRole("button", { name: /^Anuluj$/i }).click();
-      await expect(page.getByText(/Na pewno usunąć/i)).toHaveCount(0);
-      await expect(page.getByText("Deska")).toBeVisible();
+      await expect(page.getByText(/Potwierdź usunięcie wyniku/i)).toHaveCount(0);
+      await expect(resultArticle).toBeVisible();
 
       // Confirm path: Usuń → Potwierdź → result removed.
-      await page.getByRole("button", { name: /^Usuń$/i }).click();
-      await expect(page.getByText(/Na pewno usunąć/i)).toBeVisible();
+      await resultArticle.getByRole("button", { name: /^Usuń$/i }).click();
+      await expect(page.getByText(/Potwierdź usunięcie wyniku/i)).toBeVisible();
       await page.getByRole("button", { name: /Potwierdź/i }).click();
 
       // Result disappears from UI and empty state is shown.
-      await expect(page.getByText("Deska")).toHaveCount(0, {
+      await expect(resultArticle).toHaveCount(0, {
         timeout: 10_000,
       });
       await expect(page.getByText(/Brak wyników testów/i)).toBeVisible();
