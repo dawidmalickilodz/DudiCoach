@@ -28,9 +28,9 @@ import {
 const WORKER_SECRET_HEADER = "x-plan-jobs-worker-secret";
 const AUTHORIZATION_HEADER = "authorization";
 const RETRYABLE_STATUS_CODES = new Set([500, 502, 503, 529]);
-const CLAIM_LOCK_SECONDS = 180;
+const CLAIM_LOCK_SECONDS = 600;
 
-export const maxDuration = 180;
+export const maxDuration = 300;
 
 type ClaimedJob = {
   id: string;

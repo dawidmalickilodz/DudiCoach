@@ -14,8 +14,30 @@ Target: 12 October 2026 (conditional go/no-go)
 - [x] Destructive action audit: all 5 paths confirmed guarded
 - [x] Accessibility: axe-core login page passes (0 critical/serious)
 - [x] 620 tests pass, lint/typecheck/build green
+- [x] Worker timing fix: `maxDuration` 180→300s, `CLAIM_LOCK_SECONDS` 180→600s
+- [x] plan-worker.yml timeout: 1min→6min (matches function maxDuration)
+- [x] Data minimization: removed `athlete.name` and `athlete.notes` from AI prompt
+- [x] Removed `supabase/apply-missing-migrations.sql` (redundant with proper migration files)
+- [x] US-012 + US-005 E2E drift fixes verified (4/4 + 1/1 pass)
+- [x] Cleanup retry for flaky ECONNRESET added to E2E tests
 
 ## Pending — manual (requires dashboard access)
+
+### Supabase Migration Apply (BLOCKER for US-010 + US-013)
+
+The migration SQL files exist locally (`supabase/migrations/20260819120000_US-010_diagnostic_findings.sql`, `supabase/migrations/20260820090000_US-013_load_progressions.sql`) but have NOT been applied to the cloud project.
+
+Action: Run SQL in **Supabase Dashboard → SQL Editor** (project `DudiCoach-rework`):
+```
+File: supabase/migrations/20260819120000_US-010_diagnostic_findings.sql
+File: supabase/migrations/20260820090000_US-013_load_progressions.sql
+```
+
+This is the ONLY blocking item for E2E US-010 + US-013 (2 failures out of 23 total).
+
+### Supabase Preview 402 Error
+
+`storage.vector` enabled = true requires paid tier. Either upgrade to paid plan or set `[storage.vector] enabled = false`.
 
 ### E2E Secrets (GitHub repo)
 
@@ -73,9 +95,11 @@ After Preview deploy succeeds:
 
 ### Operator Tasks
 
-- [ ] Rotate `postgres` credential (peaklab) — requires `gcloud` access
+- [ ] Rotate `postgres` credential (peaklab) — requires `gcloud` access (URGENT — credential was exposed)
 - [ ] Production migration sync check — requires Supabase access
 - [ ] Server-log review of G9 window — requires Vercel access
+- [ ] Apply migrations to cloud Supabase (see section above) — BLOCKS US-010/US-013 E2E
+- [ ] Resolve Supabase Preview 402 error
 
 ## Merge Order (stacked PRs)
 

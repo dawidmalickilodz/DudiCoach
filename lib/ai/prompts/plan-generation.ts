@@ -158,7 +158,6 @@ export function buildUserPrompt(athlete: AthleteWithContext): string {
   return `Wygeneruj 4-tygodniowy plan treningowy dla nastepujacego zawodnika:
 
 ## Dane zawodnika
-- Imie: ${athlete.name}
 - Wiek: ${athlete.age ?? "brak danych"}
 - Waga: ${athlete.weight_kg != null ? String(athlete.weight_kg) + " kg" : "brak danych"}
 - Wzrost: ${athlete.height_cm != null ? String(athlete.height_cm) + " cm" : "brak danych"}
@@ -178,9 +177,6 @@ ${diagnosticsSection}
 
 ## Historia progresji (ostatnie wpisy)
 ${progressionsSection}
-
-## Dodatkowe notatki trenera
-${athlete.notes ?? "Brak"}
 
 Wygeneruj plan zgodny z podanym formatem JSON. Plan powinien miec dokladnie ${athlete.training_days_per_week ?? 3} dni treningowych na tydzien i 3-4 cwiczenia na sesje.
 Zachowaj zwiezly styl: warmup/cooldown/focus/notes po 1 krotkim zdaniu, a sekcje summary/weeklyOverview/progressionNotes/nutritionTips/recoveryProtocol krotko i bez dlugich list.`.trim();
