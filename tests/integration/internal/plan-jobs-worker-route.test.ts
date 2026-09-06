@@ -214,7 +214,7 @@ describe("GET /api/internal/plans/jobs/run", () => {
     expect(response.status).toBe(200);
     expect(json.processed).toBe(false);
     expect(mockRpc).toHaveBeenCalledWith("claim_pending_plan_generation_job", {
-      p_lock_seconds: 180,
+      p_lock_seconds: 600,
     });
   });
 });
