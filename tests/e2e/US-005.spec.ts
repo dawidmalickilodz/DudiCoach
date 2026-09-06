@@ -118,7 +118,8 @@ test.describe("US-005 â€” AI plan generation", () => {
       const postPlanResponse = page.waitForResponse(
         (response) =>
           response.request().method() === "POST" &&
-          response.url().includes(`/api/athletes/${athleteId}/plans`),
+          (response.url().includes(`/api/athletes/${athleteId}/plans`) ||
+            response.url().includes("/api/coach/plans/jobs")),
       );
       await generateButton.click();
 
@@ -130,7 +131,8 @@ test.describe("US-005 â€” AI plan generation", () => {
         const retryResponse = page.waitForResponse(
           (retry) =>
             retry.request().method() === "POST" &&
-            retry.url().includes(`/api/athletes/${athleteId}/plans`),
+            (retry.url().includes(`/api/athletes/${athleteId}/plans`) ||
+              retry.url().includes("/api/coach/plans/jobs")),
         );
         await generateButton.click();
         response = await retryResponse;
