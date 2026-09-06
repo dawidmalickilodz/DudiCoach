@@ -82,13 +82,22 @@ async function cleanupAthlete(
   request: APIRequestContext,
   athleteId: string,
 ): Promise<void> {
-  const response = await request.delete(`/api/athletes/${athleteId}`, {
-    timeout: 15_000,
-  });
-  if (![204, 404].includes(response.status())) {
-    throw new Error(
-      `Unexpected cleanup status (${response.status()}) for athlete ${athleteId}`,
-    );
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await request.delete(`/api/athletes/${athleteId}`, {
+        timeout: 15_000,
+      });
+      if ([204, 404].includes(response.status())) return;
+      throw new Error(
+        `Unexpected cleanup status (${response.status()}) for athlete ${athleteId}`,
+      );
+    } catch (err) {
+      if (attempt === 2) {
+        console.error(`[US-012 E2E] Cleanup failed for athlete ${athleteId}:`, err);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+    }
   }
 }
 
