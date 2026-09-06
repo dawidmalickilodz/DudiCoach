@@ -315,6 +315,23 @@ export default function PlanTabContent({ athlete }: PlanTabContentProps) {
 
       {plansQuery.isLoading ? (
         <p className="text-muted-foreground text-sm">{pl.common.loading}</p>
+      ) : plansQuery.isError ? (
+        <div className="bg-card border-border rounded-card border px-6 py-8 text-center">
+          <p className="text-destructive text-sm">{pl.common.error}</p>
+          <button
+            type="button"
+            onClick={() => plansQuery.refetch()}
+            className="text-primary mt-2 text-xs underline underline-offset-2"
+          >
+            {pl.common.tryAgain}
+          </button>
+        </div>
+      ) : plans.length === 0 ? (
+        <div className="bg-card border-border rounded-card border px-6 py-8 text-center">
+          <p className="text-muted-foreground text-sm">
+            {pl.coach.athlete.plans.noPlan}
+          </p>
+        </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
           <aside aria-label={pl.coach.athlete.tabs.plans}>

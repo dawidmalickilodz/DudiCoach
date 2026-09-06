@@ -19,6 +19,10 @@ export default function FloatingActionButton({
       onClick={onClick}
       aria-label={pl.coach.dashboard.addAthlete}
       className="bg-primary text-primary-foreground fixed bottom-6 right-6 z-20 flex h-14 w-14 items-center justify-center rounded-full text-2xl font-light shadow-lg transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2"
+      style={{
+        bottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))",
+        right: "calc(1.5rem + env(safe-area-inset-right, 0px))",
+      }}
     >
       <span aria-hidden="true">+</span>
     </button>

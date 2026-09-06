@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -24,6 +24,10 @@ interface AthleteProfileFormProps {
   athlete: Athlete;
 }
 
+export interface AthleteProfileFormHandle {
+  flush: () => void;
+}
+
 const CURRENT_PHASES = [
   "preparatory",
   "base",
@@ -39,7 +43,8 @@ type CurrentPhase = (typeof CURRENT_PHASES)[number];
  * Uses react-hook-form + zod + useAutoSave hook.
  * No "Save" button — all changes are persisted automatically.
  */
-export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps) {
+export default forwardRef<AthleteProfileFormHandle, AthleteProfileFormProps>(
+  function AthleteProfileForm({ athlete }, ref) {
   const updateMutation = useUpdateAthlete(athlete.id);
 
   // Bucket is separate local state because training_start_date stores an ISO
@@ -75,7 +80,7 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
   }, [athlete.id]);
 
   // Auto-save: debounced 800ms mutation on every valid form change
-  const { isSaving, lastSavedAt, saveError } = useAutoSave<UpdateAthleteInput>({
+  const { isSaving, lastSavedAt, saveError, flush } = useAutoSave<UpdateAthleteInput>({
     watch,
     formState,
     setError,
@@ -92,6 +97,8 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
     debounceMs: 800,
     publicErrorMessage: pl.coach.athlete.online.errorGeneric,
   });
+
+  useImperativeHandle(ref, () => ({ flush }), [flush]);
 
   const watchedStartDate = watch("training_start_date");
 
@@ -333,7 +340,7 @@ export default function AthleteProfileForm({ athlete }: AthleteProfileFormProps)
       </div>
     </div>
   );
-}
+})
 
 // ---------------------------------------------------------------------------
 // Helper: build form default values from athlete data

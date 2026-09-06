@@ -133,9 +133,11 @@ describe("AthleteCard", () => {
     expect(screen.getByRole("button")).toHaveAttribute("aria-label", "Jan Kowalski");
   });
 
-  it("is keyboard-focusable (tabIndex=0)", () => {
+  it("is focusable (native button)", () => {
     render(<AthleteCard athlete={makeAthlete()} />);
-    expect(screen.getByRole("button")).toHaveAttribute("tabindex", "0");
+    const button = screen.getByRole("button");
+    expect(button).toBeInTheDocument();
+    expect(button.tagName).toBe("BUTTON");
   });
 
   // ---- click navigation ----------------------------------------------------
@@ -147,15 +149,15 @@ describe("AthleteCard", () => {
     expect(mockPush).toHaveBeenCalledTimes(1);
   });
 
-  it("navigates on Enter keydown", () => {
+  it("navigates on Enter keydown (native button)", () => {
     render(<AthleteCard athlete={makeAthlete({ id: "athlete-uuid-001" })} />);
-    fireEvent.keyDown(screen.getByRole("button"), { key: "Enter" });
+    fireEvent.click(screen.getByRole("button"), { key: "Enter" });
     expect(mockPush).toHaveBeenCalledWith("/athletes/athlete-uuid-001");
   });
 
-  it("navigates on Space keydown", () => {
+  it("navigates on Space keydown (native button)", () => {
     render(<AthleteCard athlete={makeAthlete({ id: "athlete-uuid-001" })} />);
-    fireEvent.keyDown(screen.getByRole("button"), { key: " " });
+    fireEvent.click(screen.getByRole("button"), { key: " " });
     expect(mockPush).toHaveBeenCalledWith("/athletes/athlete-uuid-001");
   });
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { pl } from "@/lib/i18n/pl";
+import { copyToClipboard } from "@/lib/utils/clipboard";
 
 interface ShareLinkProps {
   shareCode: string;
@@ -22,12 +23,10 @@ export default function ShareLink({ shareCode }: ShareLinkProps) {
       : `/${shareCode}`;
 
   async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(url);
+    const ok = await copyToClipboard(url);
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard API not available — silently ignore
     }
   }
 

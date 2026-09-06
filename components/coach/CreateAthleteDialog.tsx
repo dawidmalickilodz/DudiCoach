@@ -22,7 +22,7 @@ interface CreateAthleteDialogProps {
 
 /**
  * Modal dialog for creating a new athlete.
- * Only asks for name â€” coach completes the profile in the editor.
+ * Only asks for name — coach completes the profile in the editor.
  * This is the one exception to "no Save buttons" (creation requires explicit action).
  */
 export default function CreateAthleteDialog({
@@ -32,6 +32,8 @@ export default function CreateAthleteDialog({
   const router = useRouter();
   const createMutation = useCreateAthlete();
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const {
     register,
@@ -55,33 +57,68 @@ export default function CreateAthleteDialog({
     [registerRef],
   );
 
-  // Focus the input when dialog opens
+  // Focus trap + body scroll lock
   useEffect(() => {
-    if (isOpen) {
-      // Small delay to ensure the DOM is ready
-      const id = setTimeout(() => inputRef.current?.focus(), 50);
-      return () => clearTimeout(id);
-    }
+    if (!isOpen) return;
+
+    previousFocusRef.current = document.activeElement as HTMLElement;
+
+    // Lock body scroll
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    // Focus the input
+    const id = setTimeout(() => inputRef.current?.focus(), 50);
+
+    return () => {
+      clearTimeout(id);
+      document.body.style.overflow = originalOverflow;
+      // Restore focus
+      previousFocusRef.current?.focus();
+    };
   }, [isOpen]);
 
-  // Close on Escape key
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") handleClose();
-    }
-    if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-      return () => document.removeEventListener("keydown", handleKeyDown);
-    }
-  // handleClose is stable within effect scope
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
-
-  function handleClose() {
+  const handleClose = useCallback(() => {
     reset();
     createMutation.reset();
     onClose();
-  }
+  }, [reset, createMutation, onClose]);
+
+  // Focus trap: keep tab cycling within dialog
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        handleClose();
+        return;
+      }
+      if (e.key !== "Tab" || !dialogRef.current) return;
+
+      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+        'input, button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, handleClose]);
 
   async function onSubmit(data: CreateNameInput) {
     try {
@@ -108,6 +145,7 @@ export default function CreateAthleteDialog({
     >
       {/* Dialog panel */}
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-athlete-title"

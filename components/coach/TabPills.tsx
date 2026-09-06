@@ -47,7 +47,7 @@ export default function TabPills({
               if (!isDisabled) onTabChange(tab.key);
             }}
             className={cn(
-              "rounded-pill border px-4 py-1.5 text-sm font-medium transition-colors",
+              "rounded-pill border px-4 py-2 text-sm font-medium transition-colors",
               isActive
                 ? "bg-primary text-primary-foreground border-primary"
                 : "bg-card text-muted-foreground border-border hover:text-foreground",

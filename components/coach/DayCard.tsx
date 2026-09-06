@@ -18,31 +18,22 @@ interface DayCardProps {
  * Body (expandable, default expanded): warmup, exercises, cooldown.
  */
 export default function DayCard({ day, footer }: DayCardProps) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const { viewer } = pl.coach.athlete.plans;
 
   function toggleExpanded() {
     setExpanded((prev) => !prev);
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      toggleExpanded();
-    }
-  }
-
   return (
     <div className="bg-card border-border rounded-card border overflow-hidden">
       {/* Header — always visible, clickable to expand/collapse */}
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         onClick={toggleExpanded}
-        onKeyDown={handleKeyDown}
         aria-expanded={expanded}
         className={cn(
-          "flex items-center justify-between px-4 py-3 cursor-pointer",
+          "flex w-full items-center justify-between px-4 py-3 cursor-pointer text-left",
           "hover:bg-border/20 transition-colors",
         )}
       >
@@ -76,7 +67,7 @@ export default function DayCard({ day, footer }: DayCardProps) {
             />
           </svg>
         </div>
-      </div>
+      </button>
 
       {/* Body — collapsible */}
       {expanded && (

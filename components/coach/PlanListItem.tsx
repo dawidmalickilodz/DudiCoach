@@ -29,22 +29,13 @@ export default function PlanListItem({
       ? pl.coach.athlete.phase[phaseKey]
       : plan.phase ?? "—";
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onClick();
-    }
-  }
-
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       onClick={onClick}
-      onKeyDown={handleKeyDown}
       aria-pressed={selected}
       className={cn(
-        "bg-card border rounded-card p-4 cursor-pointer transition-colors",
+        "bg-card border rounded-card p-4 cursor-pointer transition-colors w-full text-left",
         "focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-2",
         selected
           ? "border-primary ring-1 ring-primary"
@@ -60,6 +51,6 @@ export default function PlanListItem({
           {formatPlanDate(plan.created_at)}
         </span>
       </div>
-    </div>
+    </button>
   );
 }

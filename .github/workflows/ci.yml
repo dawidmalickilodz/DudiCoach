@@ -133,9 +133,14 @@ jobs:
           E2E_COACH_EMAIL: ${{ secrets.E2E_COACH_EMAIL }}
           E2E_COACH_PASSWORD: ${{ secrets.E2E_COACH_PASSWORD }}
           PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+          E2E_US022_SHARE_CODE: ${{ secrets.E2E_US022_SHARE_CODE }}
         run: |
           if [ -z "$E2E_COACH_EMAIL" ] || [ -z "$E2E_COACH_PASSWORD" ] || [ -z "$PLAYWRIGHT_BASE_URL" ]; then
             echo "E2E secrets missing. Set E2E_ENABLED=true together with E2E_COACH_EMAIL, E2E_COACH_PASSWORD and PLAYWRIGHT_BASE_URL (a PREVIEW deployment URL - never production)." >&2
+            exit 1
+          fi
+          if [ -z "$E2E_US022_SHARE_CODE" ]; then
+            echo "US-022 E2E secret missing. Set E2E_US022_SHARE_CODE for the preview fixture." >&2
             exit 1
           fi
           case "$PLAYWRIGHT_BASE_URL" in
@@ -146,8 +151,12 @@ jobs:
           esac
       - name: Install Playwright chromium
         run: npx playwright install --with-deps chromium
-      - name: E2E coach flows against the deployed preview
+      - name: E2E preview flows against the deployed preview
         id: e2e
+        env:
+          E2E_COACH_EMAIL: ${{ secrets.E2E_COACH_EMAIL }}
+          E2E_COACH_PASSWORD: ${{ secrets.E2E_COACH_PASSWORD }}
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
         run: npx playwright test tests/e2e/US-010.spec.ts tests/e2e/US-011.spec.ts tests/e2e/US-012.spec.ts tests/e2e/US-013.spec.ts --reporter=line,html
       - name: Upload Playwright report
         if: failure() && steps.e2e.conclusion == 'failure'
@@ -158,3 +167,12 @@ jobs:
             playwright-report
             test-results
           retention-days: 3
+      - name: US-022 public outcome smoke against the deployed preview
+        env:
+          E2E_COACH_EMAIL: ${{ secrets.E2E_COACH_EMAIL }}
+          E2E_COACH_PASSWORD: ${{ secrets.E2E_COACH_PASSWORD }}
+          E2E_US022_SHARE_CODE: ${{ secrets.E2E_US022_SHARE_CODE }}
+          E2E_US022_WEEK_NUMBER: ${{ vars.E2E_US022_WEEK_NUMBER }}
+          E2E_US022_DAY_NUMBER: ${{ vars.E2E_US022_DAY_NUMBER }}
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+        run: npx playwright test tests/e2e/US-022.spec.ts --reporter=line

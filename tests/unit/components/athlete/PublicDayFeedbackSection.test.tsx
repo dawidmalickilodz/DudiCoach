@@ -36,6 +36,24 @@ function makeRow(
     week_number: 1,
     day_number: 1,
     feedback_text: "Solid session",
+    session_date: "2026-05-27",
+    session_status: "completed",
+    session_rpe: 7,
+    wellbeing: 4,
+    pain_score: 2,
+    pain_location: "knee",
+    pain_side: "left",
+    created_at: "2026-05-27T10:00:00Z",
+    updated_at: "2026-05-27T10:00:00Z",
+    ...overrides,
+  };
+}
+
+function makeLegacyRow(
+  overrides: Partial<PlanSessionFeedbackRow> = {},
+): PlanSessionFeedbackRow {
+  return makeRow({
+    feedback_text: "Legacy feedback",
     session_date: null,
     session_status: null,
     session_rpe: null,
@@ -43,10 +61,8 @@ function makeRow(
     pain_score: null,
     pain_location: null,
     pain_side: null,
-    created_at: "2026-05-27T10:00:00Z",
-    updated_at: "2026-05-27T10:00:00Z",
     ...overrides,
-  };
+  });
 }
 
 function setup() {
@@ -68,6 +84,33 @@ function createDeferred<T>() {
   return { promise, resolve };
 }
 
+async function fillStructuredOutcome(comment = "  New feedback  ") {
+  fireEvent.change(await screen.findByLabelText(/Data treningu/i), {
+    target: { value: "2026-05-27" },
+  });
+  fireEvent.change(screen.getByLabelText(/Status treningu/i), {
+    target: { value: "completed" },
+  });
+  fireEvent.change(screen.getByLabelText(/RPE/i), {
+    target: { value: "8" },
+  });
+  fireEvent.change(screen.getByLabelText(/Samopoczucie/i), {
+    target: { value: "4" },
+  });
+  fireEvent.change(screen.getByLabelText(/Ból \(0-10\)/i), {
+    target: { value: "1" },
+  });
+  fireEvent.change(screen.getByLabelText(/Miejsce bólu/i), {
+    target: { value: "knee" },
+  });
+  fireEvent.change(screen.getByLabelText(/Strona bólu/i), {
+    target: { value: "left" },
+  });
+  fireEvent.change(screen.getByLabelText(/Komentarz/i), {
+    target: { value: comment },
+  });
+}
+
 describe("PublicDayFeedbackSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -75,24 +118,45 @@ describe("PublicDayFeedbackSection", () => {
     mockUpsertPublicDayFeedback.mockResolvedValue(makeRow());
   });
 
-  it("loads existing feedback and prefills textarea", async () => {
+  it("requests the v2 public feedback contract and shows the health notice", async () => {
+    setup();
+
+    expect(
+      await screen.findByText(/Podsumowanie treningu/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(pl.athletePanel.plan.feedback.healthNotice),
+    ).toBeInTheDocument();
+    expect(mockFetchPublicDayFeedback).toHaveBeenCalledWith({
+      shareCode: "ABC234",
+      planId: "plan-1",
+      weekNumber: 1,
+      dayNumber: 1,
+      contractVersion: 2,
+    });
+  });
+
+  it("loads existing structured feedback into the outcome form", async () => {
     mockFetchPublicDayFeedback.mockResolvedValueOnce(
       makeRow({ feedback_text: "Already saved" }),
     );
 
     setup();
 
-    const textarea = await screen.findByLabelText(/Twoja informacja zwrotna/i);
     await waitFor(() => {
-      expect(textarea).toHaveValue("Already saved");
+      expect(screen.getByLabelText(/Data treningu/i)).toHaveValue("2026-05-27");
+      expect(screen.getByLabelText(/Status treningu/i)).toHaveValue(
+        "completed",
+      );
+      expect(screen.getByLabelText(/RPE/i)).toHaveValue(7);
+      expect(screen.getByLabelText(/Komentarz/i)).toHaveValue("Already saved");
     });
   });
 
-  it("submits valid feedback and shows saved state", async () => {
+  it("submits complete outcome through contract v2 and shows saved state", async () => {
     setup();
 
-    const textarea = await screen.findByLabelText(/Twoja informacja zwrotna/i);
-    fireEvent.change(textarea, { target: { value: "  New feedback  " } });
+    await fillStructuredOutcome();
     fireEvent.click(
       screen.getByRole("button", { name: pl.athletePanel.plan.feedback.save }),
     );
@@ -103,7 +167,17 @@ describe("PublicDayFeedbackSection", () => {
         planId: "plan-1",
         weekNumber: 1,
         dayNumber: 1,
+        contractVersion: 2,
         feedbackText: "New feedback",
+        outcome: {
+          sessionDate: "2026-05-27",
+          sessionStatus: "completed",
+          sessionRpe: 8,
+          wellbeing: 4,
+          painScore: 1,
+          painLocation: "knee",
+          painSide: "left",
+        },
       });
       expect(screen.getByRole("status")).toHaveTextContent(
         pl.athletePanel.plan.feedback.saved,
@@ -111,38 +185,85 @@ describe("PublicDayFeedbackSection", () => {
     });
   });
 
-  it("supports second submit/update for the same day", async () => {
-    mockFetchPublicDayFeedback.mockResolvedValueOnce(
-      makeRow({ feedback_text: "First" }),
+  it("allows optional comments for structured outcome", async () => {
+    setup();
+
+    await fillStructuredOutcome("   ");
+    fireEvent.click(
+      screen.getByRole("button", { name: pl.athletePanel.plan.feedback.save }),
     );
-    mockUpsertPublicDayFeedback
-      .mockResolvedValueOnce(makeRow({ feedback_text: "Second" }))
-      .mockResolvedValueOnce(makeRow({ feedback_text: "Third" }));
+
+    await waitFor(() => {
+      expect(mockUpsertPublicDayFeedback).toHaveBeenCalledWith(
+        expect.objectContaining({ feedbackText: null }),
+      );
+    });
+  });
+
+  it("keeps legacy text-only feedback editable through the v1 contract", async () => {
+    mockFetchPublicDayFeedback.mockResolvedValueOnce(makeLegacyRow());
+    mockUpsertPublicDayFeedback.mockResolvedValueOnce(
+      makeLegacyRow({ feedback_text: "Updated legacy" }),
+    );
 
     setup();
 
     const textarea = await screen.findByLabelText(/Twoja informacja zwrotna/i);
-    fireEvent.change(textarea, { target: { value: "Second" } });
+    fireEvent.change(textarea, { target: { value: "  Updated legacy  " } });
     fireEvent.click(
       screen.getByRole("button", { name: pl.athletePanel.plan.feedback.save }),
     );
 
     await waitFor(() => {
-      expect(textarea).toHaveValue("Second");
-    });
-
-    fireEvent.change(textarea, { target: { value: "Third" } });
-    fireEvent.click(
-      screen.getByRole("button", { name: pl.athletePanel.plan.feedback.save }),
-    );
-
-    await waitFor(() => {
-      expect(textarea).toHaveValue("Third");
-      expect(mockUpsertPublicDayFeedback).toHaveBeenCalledTimes(2);
+      expect(mockUpsertPublicDayFeedback).toHaveBeenCalledWith({
+        shareCode: "ABC234",
+        planId: "plan-1",
+        weekNumber: 1,
+        dayNumber: 1,
+        feedbackText: "Updated legacy",
+      });
     });
   });
 
-  it("rejects whitespace-only feedback locally", async () => {
+  it("converts a legacy row after the athlete fills outcome", async () => {
+    mockFetchPublicDayFeedback.mockResolvedValueOnce(makeLegacyRow());
+
+    setup();
+
+    await screen.findByText(pl.athletePanel.plan.feedback.legacyHelp);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: pl.athletePanel.plan.feedback.addOutcome,
+      }),
+    );
+    await fillStructuredOutcome("Legacy feedback plus outcome");
+    fireEvent.click(
+      screen.getByRole("button", { name: pl.athletePanel.plan.feedback.save }),
+    );
+
+    await waitFor(() => {
+      expect(mockUpsertPublicDayFeedback).toHaveBeenCalledWith(
+        expect.objectContaining({ contractVersion: 2 }),
+      );
+    });
+  });
+
+  it("rejects incomplete outcome locally", async () => {
+    setup();
+
+    await screen.findByText(/Podsumowanie treningu/i);
+    fireEvent.click(
+      screen.getByRole("button", { name: pl.athletePanel.plan.feedback.save }),
+    );
+
+    expect(mockUpsertPublicDayFeedback).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      pl.athletePanel.plan.feedback.validationError,
+    );
+  });
+
+  it("rejects legacy whitespace-only feedback locally", async () => {
+    mockFetchPublicDayFeedback.mockResolvedValueOnce(makeLegacyRow());
     setup();
 
     const textarea = await screen.findByLabelText(/Twoja informacja zwrotna/i);
@@ -157,11 +278,10 @@ describe("PublicDayFeedbackSection", () => {
     );
   });
 
-  it("rejects text longer than 2000 characters locally", async () => {
+  it("rejects comments longer than 2000 characters locally", async () => {
     setup();
 
-    const textarea = await screen.findByLabelText(/Twoja informacja zwrotna/i);
-    fireEvent.change(textarea, { target: { value: "a".repeat(2001) } });
+    await fillStructuredOutcome("a".repeat(2001));
     fireEvent.click(
       screen.getByRole("button", { name: pl.athletePanel.plan.feedback.save }),
     );
@@ -179,8 +299,7 @@ describe("PublicDayFeedbackSection", () => {
 
     setup();
 
-    const textarea = await screen.findByLabelText(/Twoja informacja zwrotna/i);
-    fireEvent.change(textarea, { target: { value: "Feedback" } });
+    await fillStructuredOutcome("Feedback");
     fireEvent.click(
       screen.getByRole("button", { name: pl.athletePanel.plan.feedback.save }),
     );
@@ -198,8 +317,7 @@ describe("PublicDayFeedbackSection", () => {
 
     setup();
 
-    const textarea = await screen.findByLabelText(/Twoja informacja zwrotna/i);
-    fireEvent.change(textarea, { target: { value: "Sensitive feedback" } });
+    await fillStructuredOutcome("Sensitive feedback");
     fireEvent.click(
       screen.getByRole("button", { name: pl.athletePanel.plan.feedback.save }),
     );
@@ -216,27 +334,18 @@ describe("PublicDayFeedbackSection", () => {
     logSpy.mockRestore();
   });
 
-  it("has accessible textarea label", async () => {
-    setup();
-
-    expect(
-      await screen.findByLabelText(/Tydzien 1, Dzien 1/),
-    ).toBeInTheDocument();
-  });
-
   it("disables save button while saving", async () => {
     const deferred = createDeferred<PlanSessionFeedbackRow>();
     mockUpsertPublicDayFeedback.mockReturnValueOnce(deferred.promise);
 
     setup();
 
-    const textarea = await screen.findByLabelText(/Twoja informacja zwrotna/i);
+    await fillStructuredOutcome("Saving now");
     const button = screen.getByRole("button", {
       name: pl.athletePanel.plan.feedback.save,
     });
     const form = button.closest("form");
 
-    fireEvent.change(textarea, { target: { value: "Saving now" } });
     fireEvent.click(button);
 
     await waitFor(() => {

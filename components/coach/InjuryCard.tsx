@@ -56,7 +56,7 @@ export default function InjuryCard({ athleteId, injury }: InjuryCardProps) {
           type="button"
           onClick={handleDelete}
           disabled={deleteMutation.isPending}
-          className="rounded-input border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-50"
+          className="rounded-input border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-destructive hover:text-destructive disabled:opacity-50"
           aria-label={pl.common.delete}
         >
           {deleteMutation.isPending ? pl.coach.athlete.injuries.deleting : pl.common.delete}

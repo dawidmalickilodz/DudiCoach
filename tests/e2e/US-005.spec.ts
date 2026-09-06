@@ -70,11 +70,20 @@ async function cleanupAthlete(
   request: APIRequestContext,
   athleteId: string,
 ): Promise<void> {
-  const response = await request.delete(`/api/athletes/${athleteId}`);
-  if (![204, 404].includes(response.status())) {
-    throw new Error(
-      `Unexpected cleanup status (${response.status()}) for athlete ${athleteId}`,
-    );
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await request.delete(`/api/athletes/${athleteId}`);
+      if ([204, 404].includes(response.status())) return;
+      throw new Error(
+        `Unexpected cleanup status (${response.status()}) for athlete ${athleteId}`,
+      );
+    } catch (err) {
+      if (attempt === 2) {
+        console.error(`[US-005 E2E] Cleanup failed for athlete ${athleteId}:`, err);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+    }
   }
 }
 
@@ -109,7 +118,8 @@ test.describe("US-005 â€” AI plan generation", () => {
       const postPlanResponse = page.waitForResponse(
         (response) =>
           response.request().method() === "POST" &&
-          response.url().includes(`/api/athletes/${athleteId}/plans`),
+          (response.url().includes(`/api/athletes/${athleteId}/plans`) ||
+            response.url().includes("/api/coach/plans/jobs")),
       );
       await generateButton.click();
 
@@ -121,7 +131,8 @@ test.describe("US-005 â€” AI plan generation", () => {
         const retryResponse = page.waitForResponse(
           (retry) =>
             retry.request().method() === "POST" &&
-            retry.url().includes(`/api/athletes/${athleteId}/plans`),
+            (retry.url().includes(`/api/athletes/${athleteId}/plans`) ||
+              retry.url().includes("/api/coach/plans/jobs")),
         );
         await generateButton.click();
         response = await retryResponse;

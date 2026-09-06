@@ -1,12 +1,13 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { pl } from "@/lib/i18n/pl";
 import type { Athlete } from "@/lib/api/athletes";
 import BackButton from "./BackButton";
 import TabPills, { type Tab } from "./TabPills";
 import AthleteProfileForm from "./AthleteProfileForm";
+import type { AthleteProfileFormHandle } from "./AthleteProfileForm";
 import OnlineTab from "./OnlineTab";
 import PlanTabContent from "./PlanTabContent";
 import InjuriesTab from "./InjuriesTab";
@@ -36,6 +37,18 @@ const TABS: Tab[] = [
  */
 export default function AthleteEditorShell({ athlete }: AthleteEditorShellProps) {
   const [activeTab, setActiveTab] = useState<string>("profile");
+  const profileFormRef = useRef<AthleteProfileFormHandle>(null);
+
+  const handleTabChange = useCallback(
+    (tab: string) => {
+      // Flush pending auto-save before switching away from profile tab.
+      if (activeTab === "profile") {
+        profileFormRef.current?.flush();
+      }
+      setActiveTab(tab);
+    },
+    [activeTab],
+  );
 
   return (
     <div>
@@ -52,12 +65,12 @@ export default function AthleteEditorShell({ athlete }: AthleteEditorShellProps)
         <TabPills
           tabs={TABS}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
         />
       </div>
 
       {/* Tab content */}
-      {activeTab === "profile" && <AthleteProfileForm athlete={athlete} />}
+      {activeTab === "profile" && <AthleteProfileForm ref={profileFormRef} athlete={athlete} />}
       {activeTab === "tests" && <TestsTab athlete={athlete} />}
       {activeTab === "injuries" && <InjuriesTab athlete={athlete} />}
       {activeTab === "diagnostics" && <DiagnosticsTab athlete={athlete} />}

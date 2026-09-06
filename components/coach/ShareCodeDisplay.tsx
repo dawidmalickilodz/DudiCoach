@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { pl } from "@/lib/i18n/pl";
+import { copyToClipboard } from "@/lib/utils/clipboard";
 
 interface ShareCodeDisplayProps {
   code: string;
@@ -16,12 +17,10 @@ export default function ShareCodeDisplay({ code }: ShareCodeDisplayProps) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(code);
+    const ok = await copyToClipboard(code);
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard API not available — silently ignore
     }
   }
 

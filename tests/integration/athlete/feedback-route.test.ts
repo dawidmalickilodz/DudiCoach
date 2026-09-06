@@ -66,7 +66,10 @@ const V2_OUTCOME = {
 } as const;
 
 const V2_FEEDBACK_ROW = {
-  ...FEEDBACK_ROW,
+  id: FEEDBACK_ROW.id,
+  plan_id: FEEDBACK_ROW.plan_id,
+  week_number: FEEDBACK_ROW.week_number,
+  day_number: FEEDBACK_ROW.day_number,
   feedback_text: null,
   session_date: "2026-05-22",
   session_status: "completed",
@@ -75,6 +78,15 @@ const V2_FEEDBACK_ROW = {
   pain_score: 2,
   pain_location: "knee",
   pain_side: "left",
+  created_at: FEEDBACK_ROW.created_at,
+  updated_at: FEEDBACK_ROW.updated_at,
+};
+
+const V2_RPC_ROW_WITH_EXTRA_FIELDS = {
+  ...V2_FEEDBACK_ROW,
+  athlete_id: FEEDBACK_ROW.athlete_id,
+  coach_id: "b9a56924-d80d-4378-9b18-5ef0111472f4",
+  share_code: "ZZZ999",
 };
 
 beforeEach(() => {
@@ -182,7 +194,7 @@ describe("POST /api/athlete/[shareCode]/plans/[planId]/feedback", () => {
 
   it("returns 200 for v2 outcome and calls v2 RPC with allowlisted response", async () => {
     mockRpc.mockResolvedValueOnce({
-      data: [V2_FEEDBACK_ROW],
+      data: [V2_RPC_ROW_WITH_EXTRA_FIELDS],
       error: null,
     });
 
@@ -215,6 +227,8 @@ describe("POST /api/athlete/[shareCode]/plans/[planId]/feedback", () => {
       pain_side: "left",
     });
     expect(json.data.athlete_id).toBeUndefined();
+    expect(json.data.coach_id).toBeUndefined();
+    expect(json.data.share_code).toBeUndefined();
     expect(mockRpc).toHaveBeenCalledWith("upsert_plan_session_feedback_v2", {
       p_code: "ABC234",
       p_plan_id: PLAN_ID,
@@ -375,7 +389,7 @@ describe("GET /api/athlete/[shareCode]/plans/[planId]/feedback", () => {
 
   it("returns 200 with v2 row and calls v2 RPC when contractVersion=2", async () => {
     mockRpc.mockResolvedValueOnce({
-      data: [V2_FEEDBACK_ROW],
+      data: [V2_RPC_ROW_WITH_EXTRA_FIELDS],
       error: null,
     });
 
@@ -390,6 +404,8 @@ describe("GET /api/athlete/[shareCode]/plans/[planId]/feedback", () => {
     expect(response.status).toBe(200);
     expect(json.data.session_status).toBe("completed");
     expect(json.data.athlete_id).toBeUndefined();
+    expect(json.data.coach_id).toBeUndefined();
+    expect(json.data.share_code).toBeUndefined();
     expect(mockRpc).toHaveBeenCalledWith(
       "get_plan_session_feedback_by_share_code_v2",
       {

@@ -67,6 +67,51 @@ describe("CoachDayFeedbackDisplay", () => {
     expect(screen.getByText(/Zaktualizowano/i)).toBeInTheDocument();
   });
 
+  it("renders structured outcome values when present", () => {
+    render(
+      <CoachDayFeedbackDisplay
+        feedback={makeRow({
+          feedback_text: "Structured comment",
+          session_date: "2026-05-27",
+          session_status: "completed",
+          session_rpe: 8,
+          wellbeing: 4,
+          pain_score: 2,
+          pain_location: "knee",
+          pain_side: "left",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("27.05.2026")).toBeInTheDocument();
+    expect(screen.getByText("Wykonany")).toBeInTheDocument();
+    expect(screen.getByText("8")).toBeInTheDocument();
+    expect(screen.getByText("4/5")).toBeInTheDocument();
+    expect(screen.getByText("2/10")).toBeInTheDocument();
+    expect(screen.getByText("Kolano")).toBeInTheDocument();
+    expect(screen.getByText("Lewa")).toBeInTheDocument();
+    expect(screen.getByText("Structured comment")).toBeInTheDocument();
+  });
+
+  it("renders no-comment copy for structured outcome without feedback text", () => {
+    render(
+      <CoachDayFeedbackDisplay
+        feedback={makeRow({
+          feedback_text: null,
+          session_date: "2026-05-27",
+          session_status: "skipped",
+          session_rpe: null,
+          wellbeing: 3,
+          pain_score: 0,
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Pominięty")).toBeInTheDocument();
+    expect(screen.getAllByText("Nie dotyczy").length).toBeGreaterThan(0);
+    expect(screen.getByText("Brak komentarza.")).toBeInTheDocument();
+  });
+
   it("renders nothing when no feedback row exists", () => {
     const { container } = render(<CoachDayFeedbackDisplay feedback={null} />);
     expect(container.firstChild).toBeNull();

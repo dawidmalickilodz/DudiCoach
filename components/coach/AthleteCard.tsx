@@ -24,22 +24,13 @@ export default function AthleteCard({ athlete }: AthleteCardProps) {
     router.push(`/athletes/${athlete.id}`);
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleClick();
-    }
-  }
-
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       onClick={handleClick}
-      onKeyDown={handleKeyDown}
       aria-label={athlete.name}
       className={cn(
-        "bg-card border-border rounded-card border p-5",
+        "bg-card border-border rounded-card border p-5 text-left w-full",
         "cursor-pointer transition-colors hover:border-primary/50",
         "focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-2",
       )}
@@ -65,7 +56,7 @@ export default function AthleteCard({ athlete }: AthleteCardProps) {
 
       {/* Level badge */}
       <LevelBadge trainingStartDate={athlete.training_start_date} />
-    </div>
+    </button>
   );
 }
 

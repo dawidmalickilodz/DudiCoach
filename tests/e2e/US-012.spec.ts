@@ -82,13 +82,22 @@ async function cleanupAthlete(
   request: APIRequestContext,
   athleteId: string,
 ): Promise<void> {
-  const response = await request.delete(`/api/athletes/${athleteId}`, {
-    timeout: 15_000,
-  });
-  if (![204, 404].includes(response.status())) {
-    throw new Error(
-      `Unexpected cleanup status (${response.status()}) for athlete ${athleteId}`,
-    );
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await request.delete(`/api/athletes/${athleteId}`, {
+        timeout: 15_000,
+      });
+      if ([204, 404].includes(response.status())) return;
+      throw new Error(
+        `Unexpected cleanup status (${response.status()}) for athlete ${athleteId}`,
+      );
+    } catch (err) {
+      if (attempt === 2) {
+        console.error(`[US-012 E2E] Cleanup failed for athlete ${athleteId}:`, err);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+    }
   }
 }
 
@@ -194,27 +203,16 @@ test.describe("US-012 - fitness tests feature", () => {
       ).toBeVisible();
       await expect(page.getByText(/Brak wyników testów/i)).toBeVisible();
 
-      // AC-3: open form and submit a result.
+      // AC-3: form is always visible — submit a result directly.
+      await page.locator("#fitness-test-key").selectOption("squat_1rm");
+      await page.locator("#fitness-test-value").fill("100");
+      await page.locator("#fitness-test-date").fill(today);
       await page.getByRole("button", { name: /Dodaj wynik/i }).click();
-      await expect(
-        page.getByRole("heading", { name: /Nowy wynik testu/i }),
-      ).toBeVisible();
-
-      // squat_1rm is a universal test (sports: "all") — valid regardless of sport.
-      await page.locator("#test-selector").selectOption("squat_1rm");
-      await page.locator("#test-value").fill("100");
-      await page.locator("#test-date").fill(today);
-      await page.getByRole("button", { name: /Zapisz wynik/i }).click();
-
-      // Form closes after successful submit.
-      await expect(
-        page.getByRole("heading", { name: /Nowy wynik testu/i }),
-      ).toBeHidden({ timeout: 10_000 });
 
       // Result appears in history with name and value.
-      await expect(page.getByText("Przysiad 1RM")).toBeVisible({
-        timeout: 10_000,
-      });
+      await expect(
+        page.getByRole("article").getByText("Przysiad 1RM"),
+      ).toBeVisible({ timeout: 10_000 });
       await expect(page.getByText(/100\s*kg/)).toBeVisible();
     } finally {
       if (athleteId) {
@@ -243,60 +241,63 @@ test.describe("US-012 - fitness tests feature", () => {
       await page.getByRole("tab", { name: /^Testy$/i }).click();
       await page.getByRole("button", { name: /Dodaj wynik/i }).click();
 
-      const selector = page.locator("#test-selector");
+      const selector = page.locator("#fitness-test-key");
       await expect(selector).toBeVisible();
 
       // AC-4: five universal tests present when sport=null.
       await expect(
-        page.locator('#test-selector option[value="squat_1rm"]'),
+        page.locator('#fitness-test-key option[value="squat_1rm"]'),
       ).toBeAttached();
       await expect(
-        page.locator('#test-selector option[value="bench_press_1rm"]'),
+        page.locator('#fitness-test-key option[value="bench_press_1rm"]'),
       ).toBeAttached();
       await expect(
-        page.locator('#test-selector option[value="deadlift_1rm"]'),
+        page.locator('#fitness-test-key option[value="deadlift_1rm"]'),
       ).toBeAttached();
       await expect(
-        page.locator('#test-selector option[value="plank_hold"]'),
+        page.locator('#fitness-test-key option[value="plank_hold"]'),
       ).toBeAttached();
       await expect(
-        page.locator('#test-selector option[value="run_1000m"]'),
+        page.locator('#fitness-test-key option[value="run_1000m"]'),
       ).toBeAttached();
 
       // AC-2: sport-specific tests must NOT be present when sport=null.
       await expect(
-        page.locator('#test-selector option[value="sprint_30m"]'),
+        page.locator('#fitness-test-key option[value="sprint_30m"]'),
       ).toHaveCount(0);
       await expect(
-        page.locator('#test-selector option[value="yoyo_ir1"]'),
+        page.locator('#fitness-test-key option[value="yoyo_ir1"]'),
       ).toHaveCount(0);
 
       // Hint text visible when sport is unset.
-      await expect(page.getByText(/Ustaw sport zawodnika/i)).toBeVisible();
+      await expect(
+        page.getByText(/Sport zawodnika nie został ustawiony/i),
+      ).toBeVisible();
 
       // Set sport via API, then reload the page so the server re-renders with
       // the updated athlete.sport prop.
       await setAthleteSport(page.request, athleteId, "pilka_nozna");
       await page.goto(`/athletes/${athleteId}`);
       await page.getByRole("tab", { name: /^Testy$/i }).click();
-      await page.getByRole("button", { name: /Dodaj wynik/i }).click();
 
       // After sport is set: pilka_nozna-specific tests are present.
       await expect(
-        page.locator('#test-selector option[value="sprint_30m"]'),
+        page.locator('#fitness-test-key option[value="sprint_30m"]'),
       ).toBeAttached();
       await expect(
-        page.locator('#test-selector option[value="yoyo_ir1"]'),
+        page.locator('#fitness-test-key option[value="yoyo_ir1"]'),
       ).toBeAttached();
       await expect(
-        page.locator('#test-selector option[value="t_test"]'),
+        page.locator('#fitness-test-key option[value="t_test"]'),
       ).toBeAttached();
       await expect(
-        page.locator('#test-selector option[value="broad_jump"]'),
+        page.locator('#fitness-test-key option[value="broad_jump"]'),
       ).toBeAttached();
 
       // Hint must be gone once sport is set.
-      await expect(page.getByText(/Ustaw sport zawodnika/i)).toHaveCount(0);
+      await expect(
+        page.getByText(/Sport zawodnika nie został ustawiony/i),
+      ).toHaveCount(0);
     } finally {
       if (athleteId) {
         await cleanupAthlete(page.request, athleteId);
@@ -351,22 +352,22 @@ test.describe("US-012 - fitness tests feature", () => {
       await page.getByRole("tab", { name: /^Testy$/i }).click();
 
       // squat_1rm: today(100) vs yesterday(90) → delta=+10, higher_is_better
-      // TrendIndicator renders: "↑ 10 kg"  (arrow=↑, absDelta=10, unit=kg)
-      await expect(page.getByText(/↑\s*10\s*kg/)).toBeVisible({
+      // TrendIndicator renders: "+ 10"  (marker="+", formattedDelta="10")
+      await expect(page.getByText(/^\+\s*10$/)).toBeVisible({
         timeout: 10_000,
       });
 
       // run_1000m: today(200) vs yesterday(240) → delta=-40, lower_is_better
-      // TrendIndicator renders: "↓ 40 s"  (arrow=↓, absDelta=40, unit=s)
-      await expect(page.getByText(/↓\s*40\s*s/)).toBeVisible({
+      // TrendIndicator renders: "- 40"  (marker="-", formattedDelta="40")
+      await expect(page.getByText(/^-\s*40$/)).toBeVisible({
         timeout: 10_000,
       });
 
       // Older results (yesterday for each test) have no trend indicator text
       // because there is no prior result to compare against.
       // We assert that each trend text appears exactly once (not doubled).
-      await expect(page.getByText(/↑\s*10\s*kg/)).toHaveCount(1);
-      await expect(page.getByText(/↓\s*40\s*s/)).toHaveCount(1);
+      await expect(page.getByText(/^\+\s*10$/)).toHaveCount(1);
+      await expect(page.getByText(/^-\s*40$/)).toHaveCount(1);
     } finally {
       if (athleteId) {
         await cleanupAthlete(page.request, athleteId);
@@ -401,24 +402,25 @@ test.describe("US-012 - fitness tests feature", () => {
       await neutralizeVercelLiveFeedbackOverlay(page);
 
       // Result visible in history.
-      await expect(page.getByText("Deska")).toBeVisible({ timeout: 10_000 });
+      const resultArticle = page.getByRole("article").filter({ hasText: "Deska" });
+      await expect(resultArticle).toBeVisible({ timeout: 10_000 });
 
       // Step 1: click Usuń → confirm area appears, no deletion yet.
-      await page.getByRole("button", { name: /^Usuń$/i }).click();
-      await expect(page.getByText(/Na pewno usunąć/i)).toBeVisible();
+      await resultArticle.getByRole("button", { name: /^Usuń$/i }).click();
+      await expect(page.getByText(/Potwierdź usunięcie wyniku/i)).toBeVisible();
 
       // Cancel path: Anuluj → confirm area gone, result still present.
       await page.getByRole("button", { name: /^Anuluj$/i }).click();
-      await expect(page.getByText(/Na pewno usunąć/i)).toHaveCount(0);
-      await expect(page.getByText("Deska")).toBeVisible();
+      await expect(page.getByText(/Potwierdź usunięcie wyniku/i)).toHaveCount(0);
+      await expect(resultArticle).toBeVisible();
 
       // Confirm path: Usuń → Potwierdź → result removed.
-      await page.getByRole("button", { name: /^Usuń$/i }).click();
-      await expect(page.getByText(/Na pewno usunąć/i)).toBeVisible();
+      await resultArticle.getByRole("button", { name: /^Usuń$/i }).click();
+      await expect(page.getByText(/Potwierdź usunięcie wyniku/i)).toBeVisible();
       await page.getByRole("button", { name: /Potwierdź/i }).click();
 
       // Result disappears from UI and empty state is shown.
-      await expect(page.getByText("Deska")).toHaveCount(0, {
+      await expect(resultArticle).toHaveCount(0, {
         timeout: 10_000,
       });
       await expect(page.getByText(/Brak wyników testów/i)).toBeVisible();

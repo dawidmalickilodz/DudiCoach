@@ -73,19 +73,19 @@ export default function AthletePanel({
         <SyncIndicator status={connectionStatus} />
       </header>
 
+      <div className="mb-4">
+        <PlanPublicSection plan={initialPlan} shareCode={shareCode} />
+      </div>
       <AthleteProfileView athlete={athlete} />
       <div className="mt-4">
         <InjuriesPublicSection injuries={injuries} />
-      </div>
-      <div className="mt-4">
-        <PlanPublicSection plan={initialPlan} shareCode={shareCode} />
       </div>
 
       <div className="mt-6 flex justify-center">
         <button
           type="button"
           onClick={handleDisconnect}
-          className="text-muted-foreground hover:text-foreground rounded-pill border border-border px-4 py-1.5 text-xs font-medium transition-colors"
+          className="text-muted-foreground hover:text-foreground rounded-pill border border-border px-4 py-2 text-xs font-medium transition-colors"
         >
           {pl.athletePanel.disconnect}
         </button>

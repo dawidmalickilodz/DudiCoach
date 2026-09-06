@@ -1,0 +1,39 @@
+name: Plan worker trigger
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+# Vercel Hobby plan does not support cron triggers natively. This workflow
+# replaces the removed vercel.json cron by POSTing to the worker endpoint
+# every 5 minutes. Once Vercel Pro (or an equivalent scheduler) is available,
+# this workflow should be removed and the cron restored in vercel.json.
+
+permissions:
+  contents: read
+
+jobs:
+  trigger:
+    name: trigger
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Trigger plan worker
+        env:
+          PLAN_JOBS_WORKER_SECRET: ${{ secrets.PLAN_JOBS_WORKER_SECRET }}
+        run: |
+          if [ -z "$PLAN_JOBS_WORKER_SECRET" ]; then
+            echo "PLAN_JOBS_WORKER_SECRET is not set. Skipping." >&2
+            exit 1
+          fi
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer $PLAN_JOBS_WORKER_SECRET" \
+            "https://dudi-coach.vercel.app/api/internal/plans/jobs/run")
+          echo "Worker responded with HTTP $STATUS"
+          case "$STATUS" in
+            200|204) echo "OK" ;;
+            401) echo "Authentication failed — check PLAN_JOBS_WORKER_SECRET in repo secrets and Vercel env." >&2; exit 1 ;;
+            *) echo "Unexpected status $STATUS" >&2; exit 1 ;;
+          esac
