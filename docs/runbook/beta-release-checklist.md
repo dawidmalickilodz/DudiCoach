@@ -20,6 +20,8 @@ Target: 12 October 2026 (conditional go/no-go)
 - [x] Removed `supabase/apply-missing-migrations.sql` (redundant with proper migration files)
 - [x] US-012 + US-005 E2E drift fixes verified (4/4 + 1/1 pass)
 - [x] Cleanup retry for flaky ECONNRESET added to E2E tests
+- [x] Worker lock seconds test fix (p_lock_seconds 180→600) (commit d97ace0)
+- [x] All 620 tests pass, lint/typecheck/build green
 
 ## Pending — manual (requires dashboard access)
 
