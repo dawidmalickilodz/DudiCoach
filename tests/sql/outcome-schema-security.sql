@@ -146,15 +146,28 @@ begin
     raise exception 'SECURITY-ASSERT 6 FAIL: unexpected anon or write policy added';
   end if;
 
-  -- 7. No direct DML grants for client roles; access is RPC-only.
+  -- 7. Deterministic client ACL: anon has no table access; authenticated
+  -- has SELECT only (coach reads under RLS, writes stay RPC-only).
   if exists (
     select 1 from information_schema.role_table_grants g
     where g.table_schema = 'public'
       and g.table_name = 'plan_session_feedback'
-      and g.grantee in ('anon', 'authenticated')
-      and g.privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
+      and (
+        (g.grantee = 'anon' and g.privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE'))
+        or (g.grantee = 'authenticated' and g.privilege_type in ('INSERT', 'UPDATE', 'DELETE'))
+      )
   ) then
-    raise exception 'SECURITY-ASSERT 7 FAIL: direct DML grant for anon/authenticated detected';
+    raise exception 'SECURITY-ASSERT 7 FAIL: unexpected direct table grant for client role detected';
+  end if;
+
+  if not exists (
+    select 1 from information_schema.role_table_grants g
+    where g.table_schema = 'public'
+      and g.table_name = 'plan_session_feedback'
+      and g.grantee = 'authenticated'
+      and g.privilege_type = 'SELECT'
+  ) then
+    raise exception 'SECURITY-ASSERT 7 FAIL: authenticated SELECT grant missing';
   end if;
 
   -- 8. RPC signatures and ACLs unchanged.
@@ -191,7 +204,7 @@ begin
 end;
 $$;
 
--- Behavioral ACL checks: client roles cannot touch the table directly.
+-- Behavioral ACL checks: anon cannot touch the table; authenticated SELECT is RLS-gated.
 -- Session-level set role: a failed role switch raises immediately instead of
 -- being swallowed by the insufficient_privilege handler below.
 set role anon;
@@ -209,13 +222,13 @@ reset role;
 
 set role authenticated;
 do $$
+declare
+  v_n integer;
 begin
-  begin
-    perform count(*) from public.plan_session_feedback;
-    raise exception 'SECURITY-ASSERT 10 FAIL: authenticated can select the table directly';
-  exception when insufficient_privilege then
-    null;
-  end;
+  select count(*) into v_n from public.plan_session_feedback;
+  if v_n <> 0 then
+    raise exception 'SECURITY-ASSERT 10 FAIL: unauthenticated JWT context bypassed RLS: % rows', v_n;
+  end if;
 end;
 $$;
 reset role;

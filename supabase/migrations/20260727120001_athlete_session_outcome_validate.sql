@@ -14,6 +14,9 @@
 
 begin;
 
+-- Bound the SHARE UPDATE EXCLUSIVE wait for the validation scans.
+set local lock_timeout = '30s';
+
 alter table public.plan_session_feedback
   validate constraint plan_session_feedback_outcome_complete;
 alter table public.plan_session_feedback

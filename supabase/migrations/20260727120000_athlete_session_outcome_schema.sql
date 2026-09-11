@@ -1,7 +1,8 @@
 -- Athlete Session Outcome schema foundation (PR1, reworked).
 -- Scope: additive outcome columns, validation constraints (added NOT VALID,
 -- validated in the sibling 20260727120001 file), date trigger, partial index,
--- column documentation, and hardened trigger-function ACL.
+-- column documentation, hardened trigger-function ACL, and deterministic
+-- client table ACL normalization (anon: none, authenticated: SELECT only).
 -- Lane C. Design: docs/design/athlete-context-system-design.md §3, §10, §11.
 --
 -- Lock profile (this file's transaction):
@@ -15,6 +16,7 @@
 --   - ADD COLUMN x7 .......... metadata-only (no DEFAULT, no NOT NULL) - fast
 --   - ADD CONSTRAINT x3 ...... NOT VALID - no table scan - fast
 --   - DROP CONSTRAINT / ALTER COLUMN DROP NOT NULL - no scan - fast
+--   - REVOKE/GRANT ........... fast catalog-only ACL normalization
 --   - CREATE INDEX ........... SHARE (brief write block; small table)
 --   - CREATE TRIGGER ......... SHARE ROW EXCLUSIVE (brief write block)
 --   The expensive VALIDATE CONSTRAINT scans run in the NEXT transaction
@@ -24,8 +26,14 @@
 --   NOT VALID constraints are enforced on every new INSERT/UPDATE after
 --   creation, so no violating row can appear between the two migrations and
 --   VALIDATE cannot race a concurrent write.
+--   lock_timeout bounds the ACCESS EXCLUSIVE wait so production cannot wait
+--   indefinitely behind an open transaction.
 
 begin;
+
+-- Bound the lock wait; production must fail fast instead of queueing behind
+-- an unrelated open transaction.
+set local lock_timeout = '10s';
 
 -- Serialize against concurrent direct-RPC writes so the legacy-row pre-check
 -- below cannot observe a snapshot that the later VALIDATE CONSTRAINT scan
@@ -168,18 +176,11 @@ begin
     raise exception 'Pre-check failed: read RPC is executable by PUBLIC';
   end if;
 
-  -- Baseline: no direct DML grants to client roles (Supabase default grants
-  -- cover only non-DML privileges); table access is RPC-only.
-  if exists (
-    select 1
-    from information_schema.role_table_grants g
-    where g.table_schema = 'public'
-      and g.table_name = 'plan_session_feedback'
-      and g.grantee in ('anon', 'authenticated')
-      and g.privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
-  ) then
-    raise exception 'Pre-check failed: unexpected direct DML grant for anon/authenticated';
-  end if;
+  -- Baseline: Supabase Cloud legacy projects grant full DML to anon and
+  -- authenticated on user tables. Local replay has no such grants. Both
+  -- states are accepted here because this migration deterministically
+  -- normalizes the ACL below (anon: none, authenticated: SELECT only).
+  -- RLS policies are verified separately and remain the row-level gate.
 
   select count(*)
   into v_invalid_legacy_rows
@@ -315,6 +316,15 @@ alter table public.plan_session_feedback
   drop constraint plan_session_feedback_feedback_text_check,
   alter column feedback_text drop not null;
 
+-- Deterministic client ACL: coach route reads plan_session_feedback directly
+-- as authenticated under RLS; public athlete writes stay RPC-only.
+-- Supabase Cloud legacy projects carry full DML grants for anon and
+-- authenticated, so revoke everything first, then grant SELECT only.
+revoke all on table public.plan_session_feedback from public;
+revoke all on table public.plan_session_feedback from anon;
+revoke all on table public.plan_session_feedback from authenticated;
+grant select on table public.plan_session_feedback to authenticated;
+
 -- A trigger is used instead of a time-dependent CHECK constraint.
 create function public.enforce_plan_session_feedback_session_date_not_future()
 returns trigger
@@ -373,7 +383,8 @@ comment on column public.plan_session_feedback.pain_side is
 comment on function public.enforce_plan_session_feedback_session_date_not_future() is
   'Rejects future session_date values using the Europe/Warsaw calendar date.';
 
--- Assert the intended schema end-state without changing policies, grants, or RPCs.
+-- Assert the intended schema end-state without changing policies or RPCs.
+-- Client table grants are deterministically normalized above.
 do $$
 declare
   v_nullable_outcome_columns integer;
@@ -540,16 +551,39 @@ begin
     raise exception 'Outcome schema post-check failed: unexpected anon or write policy added';
   end if;
 
-  -- No new direct DML grants for client roles; table access is RPC-only.
+  -- Deterministic client ACL: anon has no table privileges; authenticated
+  -- has SELECT only (coach reads under RLS, writes stay RPC-only).
   if exists (
     select 1
     from information_schema.role_table_grants g
     where g.table_schema = 'public'
       and g.table_name = 'plan_session_feedback'
-      and g.grantee in ('anon', 'authenticated')
+      and g.grantee = 'anon'
       and g.privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
   ) then
-    raise exception 'Outcome schema post-check failed: direct DML grant for anon/authenticated detected';
+    raise exception 'Outcome schema post-check failed: anon table grant detected';
+  end if;
+
+  if not exists (
+    select 1
+    from information_schema.role_table_grants g
+    where g.table_schema = 'public'
+      and g.table_name = 'plan_session_feedback'
+      and g.grantee = 'authenticated'
+      and g.privilege_type = 'SELECT'
+  ) then
+    raise exception 'Outcome schema post-check failed: authenticated SELECT grant missing';
+  end if;
+
+  if exists (
+    select 1
+    from information_schema.role_table_grants g
+    where g.table_schema = 'public'
+      and g.table_name = 'plan_session_feedback'
+      and g.grantee = 'authenticated'
+      and g.privilege_type in ('INSERT', 'UPDATE', 'DELETE')
+  ) then
+    raise exception 'Outcome schema post-check failed: authenticated write grant detected';
   end if;
 
   -- RPC surface unchanged.

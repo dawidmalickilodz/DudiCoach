@@ -91,8 +91,11 @@ allow inconsistency with the catalog. UI grouping reads it from
 
 - `enable row level security` + 4 coach-owner policies exactly like `injuries`
   (`athlete_id in (select id from public.athletes where coach_id = auth.uid())`).
-- NO anon policy, NO public RPC, NO realtime publication — FMS is coach-only
-  in this story (athlete visibility is a US-015 decision).
+- NO anon policy, NO anon table grants, NO public RPC, NO realtime
+  publication — FMS is coach-only in this story (athlete visibility is a
+  US-015 decision). The migration revokes all table grants from
+  `public`/`anon`/`authenticated` first, then grants CRUD to `authenticated`
+  only, so legacy Cloud defaults cannot leave anon access behind.
 - All API routes call `requireAuth` server-side; ownership is enforced by RLS
   (select returns empty / insert `WITH CHECK` fails) and by route-level 404
   semantics identical to injuries routes.
@@ -191,7 +194,8 @@ generator is available, then `DiagnosticFinding = Tables<"diagnostic_findings">`
 
 ### SQL gates — `tests/sql/us010-fms-gates.sql` (wired into `verify-migrations.sh`)
 
-- anon: select/insert denied (0 rows / policy violation).
+- anon: zero table grants; select/insert denied at grant level
+  (`insufficient_privilege`).
 - cross-coach: coach B cannot select/insert/update/delete coach A findings.
 - coach-owner: full CRUD works for owner.
 - unique: second insert same (athlete, muscle, side) → constraint error.
