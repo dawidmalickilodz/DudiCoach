@@ -322,23 +322,41 @@ begin
 end;
 $$;
 
--- G12: anon has a SELECT grant only; reads are blocked by RLS (zero rows),
--- writes are blocked at grant level.
-set role anon;
+-- G12: anon has no table privileges; reads and writes are blocked at grant
+-- level with insufficient_privilege.
 do $$
 declare
   v_n integer;
 begin
-  select count(*) into v_n from public.load_progressions;
-  if v_n <> 0 then
-    raise exception 'ANON SELECT DENIED FAIL, rows=%', v_n;
+  select count(*) into v_n
+  from information_schema.role_table_grants
+  where table_schema = 'public'
+    and table_name = 'load_progressions'
+    and grantee = 'anon'
+    and privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE');
+  if v_n = 0 then
+    insert into us013_result values ('g12_anon_no_grants', 'pass');
+  else
+    insert into us013_result values ('g12_anon_no_grants', 'grants=' || v_n);
   end if;
+end;
+$$;
+
+set role anon;
+do $$
+begin
+  begin
+    perform count(*) from public.load_progressions;
+    raise exception 'ANON SELECT DENIED FAIL';
+  exception when insufficient_privilege then
+    null;
+  end;
 
   begin
     insert into public.load_progressions (athlete_id, exercise_name, entry_date, weight_kg)
     values ('a0000000-0000-0000-0000-000000000001', 'Squat', '2026-08-19', 80);
     raise exception 'ANON INSERT DENIED FAIL';
-  exception when insufficient_privilege or check_violation then
+  exception when insufficient_privilege then
     null;
   end;
 end;

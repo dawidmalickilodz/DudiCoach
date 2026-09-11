@@ -106,10 +106,10 @@ comment on table public.load_progressions is
   `diagnostic_findings` (`athlete_id in (select id from public.athletes where
   coach_id = auth.uid())`).
 - NO anon policy, NO public RPC, NO realtime publication — coach-only data.
-- Grants mirror the local-stack reality (explicit GRANTs, as the local
-  Supabase stack omits the cloud default grants): all-DML to `authenticated`,
-  SELECT to `anon` (RLS still blocks anon reads; grant mirrors the cloud
-  default), SELECT on `athletes` to `authenticated` (policy subquery).
+- Grants are deterministic least privilege (explicit REVOKE ALL from
+  `public`/`anon`/`authenticated` first, as Cloud legacy projects carry full
+  DML defaults): all-DML to `authenticated`, no table grants to `anon`,
+  SELECT on `athletes` to `authenticated` (policy subquery).
 - All API routes call `requireAuth` server-side; ownership is enforced by RLS
   and route-level 404 semantics identical to diagnostics routes (cross-coach
   reads/writes resolve to 404 — non-leaky; 401 only when unauthenticated).
@@ -200,7 +200,8 @@ the migration.
 (wired into `verify-migrations.sh` phases 1 and 2b, with
 `tests/sql/fixtures/us013-load-progressions-seed.sql`)
 
-- anon: select denied (0 rows), insert denied.
+- anon: zero table grants; select/insert denied at grant level
+  (`insufficient_privilege`).
 - cross-coach: coach B cannot select/insert/update/delete coach A entries.
 - coach-owner: full CRUD works for owner.
 - per-day uniqueness: second insert same (athlete, exercise_name, entry_date)

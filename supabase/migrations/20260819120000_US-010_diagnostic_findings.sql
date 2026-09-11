@@ -110,14 +110,16 @@ create policy "diagnostic_findings_delete_own"
 -- ---------------------------------------------------------------------------
 -- Grants
 --
--- Explicit grants mirror Supabase cloud defaults (the local dev stack omits
--- them, and the app accesses the table via PostgREST as `authenticated`).
--- `anon` gets SELECT only (cloud default is all-DML, but least privilege wins
--- here); with no anon policies RLS denies every anon access.
+-- Deterministic least privilege: coach routes access this table directly as
+-- `authenticated` under RLS. `anon` gets no table privileges (all coach
+-- routes require authentication). Revoke first because Supabase Cloud
+-- legacy projects carry full DML defaults for anon/authenticated.
 -- ---------------------------------------------------------------------------
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.diagnostic_findings TO authenticated;
-GRANT SELECT ON TABLE public.diagnostic_findings TO anon;
+revoke all on table public.diagnostic_findings from public;
+revoke all on table public.diagnostic_findings from anon;
+revoke all on table public.diagnostic_findings from authenticated;
+grant select, insert, update, delete on table public.diagnostic_findings to authenticated;
 
 -- RLS policies read athletes.coach_id (owner check) as `authenticated`; the
 -- cloud grants already allow this, the local dev stack does not. Idempotent.

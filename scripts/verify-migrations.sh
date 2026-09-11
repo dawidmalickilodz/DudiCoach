@@ -9,10 +9,12 @@
 #       outcome pair and anything newer) seeded with a legacy row that is
 #       valid under the legacy rule but fails the new POSIX trim rule MUST
 #       reject the migration.
-#   2b. Upgrade replay: a pre-outcome DB with valid legacy data upgraded by
-#       the outcome migrations, then the remaining newer migrations applied
-#       in chronological order (same as production), then security +
-#       behavior + upgrade assertions.
+#   2b. Upgrade replay: a pre-outcome DB with valid legacy data plus the
+#       production Cloud legacy ACL fixture (anon/authenticated full DML),
+#       upgraded by the outcome migrations, then the remaining newer
+#       migrations applied in chronological order (same as production,
+#       including the 20260820100000 grant-hardening migration), then
+#       security + behavior + upgrade assertions.
 #
 # Usage: bash scripts/verify-migrations.sh
 # Requires: Docker engine running, supabase CLI resolvable via npx.
@@ -107,6 +109,7 @@ echo "== Phase 2b: upgrade replay on a pre-outcome DB with legacy data =="
 $SUPABASE db reset >/dev/null
 run_sql tests/sql/fixtures/session-outcome-seed.sql
 run_sql tests/sql/fixtures/session-outcome-seed-legacy-valid.sql
+run_sql tests/sql/fixtures/cloud-legacy-acl.sql
 run_sql "${TMP}/moved/$(basename "${OUTCOME_A}")"
 run_sql "${TMP}/moved/$(basename "${OUTCOME_B}")"
 for f in ${NEWER_MIGRATIONS}; do
